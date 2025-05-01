@@ -13,6 +13,11 @@ pymysql.install_as_MySQLdb()
 # Charger les variables d'environnement
 load_dotenv()
 
+# ==================================================================================
+# TODO: PAS OUBLIER DE CHANGER LE LIEN DE CONNEXION MYSQL DANS LE FICHIER .env
+#       ou dans app/config.py selon votre configuration
+# ==================================================================================
+
 def create_app():
     """Crée et configure l'application Flask"""
     # Créer l'instance Flask
@@ -32,9 +37,11 @@ def create_app():
     # Enregistrer les blueprints
     from app.routes.auth_routes import auth_bp
     from app.routes.hello_routes import hello_bp
+    from app.routes.search_routes import search_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(hello_bp, url_prefix='/api/hello')
+    app.register_blueprint(search_bp, url_prefix='/api/search')
     
     # Route racine
     @app.route('/')
@@ -50,4 +57,5 @@ if __name__ == '__main__':
     # Démarrer le serveur
     port = int(os.environ.get('PORT', 5001))
     print(f"Démarrage du serveur sur le port {port}...")
-    app.run(host='0.0.0.0', port=port, debug=True) 
+    print("N'OUBLIEZ PAS DE VÉRIFIER LA CONNEXION MYSQL DANS LES PARAMÈTRES DE CONFIGURATION!")
+    app.run(host='0.0.0.0', port=port, debug=True)
