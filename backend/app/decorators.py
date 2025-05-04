@@ -68,8 +68,12 @@ def token_required(f):
                 'message': "Accès non autorisé pour cet utilisateur T"
             }), 403
             
-        # Ajouter l'ID de l'utilisateur aux arguments de la fonction
-        kwargs['user_id'] = token_user_id
-        return f(*args, **kwargs)
+        # Créer un objet current_user basé sur les informations du token
+        current_user = {
+            'id': token_user_id
+        }
+
+        # Passer current_user comme premier argument à la fonction décorée
+        return f(current_user, *args, **kwargs)
         
     return decorated

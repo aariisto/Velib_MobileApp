@@ -4,6 +4,8 @@ Routes pour la gestion des recherches
 from flask import Blueprint, request, jsonify
 from ..services.search_service import SearchService
 from ..decorators import token_required
+from flask import Blueprint, session, jsonify
+from app.services.reservation_service import ReservationService
 
 # Créer un blueprint pour les routes de recherche
 search_bp = Blueprint('search', __name__)
@@ -56,3 +58,5 @@ def delete_search(*args, **kwargs):
             'error_code': 'UNKNOWN_ERROR',
             'token': False
         }), 500
+    
+
