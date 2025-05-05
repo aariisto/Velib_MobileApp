@@ -43,7 +43,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(hello_bp, url_prefix='/api/hello')
     app.register_blueprint(search_bp, url_prefix='/api/search')
-    app.register_blueprint(reservation_bp)
+    app.register_blueprint(reservation_bp, url_prefix='/api/reservation')
 
     # Route racine
     @app.route('/')
