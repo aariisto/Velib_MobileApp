@@ -2,6 +2,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from typing import Tuple, Dict, Any
 from ..extensions import db
 from sqlalchemy import text
+import re
+import requests
+from typing import Optional
+import os
+
 
 class SearchService:
     """Service pour gérer les opérations liées aux recherches"""
@@ -67,34 +72,160 @@ class SearchService:
             }, 500
 
     @staticmethod
-    def get_searches_by_user(user_id: int) -> Tuple[bool, str, Any, int]:
+    def save_search(user_id: int, search_term: str, station_id: Optional[int], result: int) -> Tuple[bool, str, Dict[str, Any], int]:
         """
-        Récupère toutes les recherches d'un utilisateur donné
-
+        Enregistre une recherche dans la base de données
+        
         Args:
             user_id (int): ID de l'utilisateur
-
+            search_term (str): Terme de recherche
+            station_id (Optional[int]): ID de la station trouvée
+            result (int): Résultat de la recherche (1 = trouvé, 0 = non trouvé)
+            
         Returns:
-            tuple: (success, message, data, status_code)
+            tuple: (success, message, response_data, status_code)
         """
         try:
-            # Requête SQL pour récupérer les recherches de l'utilisateur
-            result = db.session.execute(
-                text("SELECT * FROM recherches_vue WHERE client_id = :client_id"),
-                {'client_id': user_id}
-            )
-
-            # Récupérer directement les données sans traitement
-            rows = result.fetchall()
-            raw_data = [dict(row._mapping) for row in rows]
+            # Nettoyer la recherche
+            search_term = re.sub(r'\s+', ' ', search_term.strip())
             
-            # Retourner directement les données brutes
-            return True, "Recherches récupérées avec succès", raw_data, 200
-
+            # Insérer la recherche dans la base de données
+            query = """
+                INSERT INTO recherches (client_id, recherche, station_id, resultat)
+                VALUES (:client_id, :recherche, :station_id, :resultat)
+            """
+            params = {
+                'client_id': user_id,
+                'recherche': search_term,
+                'station_id': station_id,
+                'resultat': result
+            }
+            
+            db.session.execute(text(query), params)
+            db.session.commit()
+            
+            return True, "Recherche enregistrée avec succès", {}, 200
+                
         except SQLAlchemyError as e:
-            print(f"[ERROR] Erreur SQLAlchemy: {str(e)}")
-            return False, "Erreur base de données", {'error': str(e)}, 500
-
+            db.session.rollback()
+            return False, f"Erreur lors de l'enregistrement de la recherche: {str(e)}", {
+                'error': str(e),
+                'error_code': 'DATABASE_ERROR',
+                'token': False
+            }, 500
+            
         except Exception as e:
-            print(f"[ERROR] Exception générale: {str(e)}")
-            return False, "Erreur inconnue", {'error': str(e)}, 500
+            db.session.rollback()
+            return False, f"Erreur inattendue: {str(e)}", {
+                'error': str(e),
+                'error_code': 'UNKNOWN_ERROR',
+                'token': False
+            }, 500
+
+    @staticmethod
+    def search_station(search_term: str) -> Tuple[bool, str, Dict[str, Any], int]:
+        """
+        Recherche une station via l'API Velib, puis Google Maps si non trouvée
+        
+        Args:
+            search_term (str): Terme de recherche
+            
+        Returns:
+            tuple: (success, message, response_data, status_code)
+        """
+        try:
+            # Nettoyer la recherche
+            search_term = re.sub(r'\s+', ' ', search_term.strip())
+            
+            # 1. Recherche dans l'API Velib
+            url = "https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_information.json"
+            response = requests.get(url)
+            
+            if not response.ok:
+                return False, "Erreur lors de l'appel à l'API Velib", {
+                    'error': "Le serveur n'a pas pu traiter votre demande",
+                    'error_code': 'API_ERROR',
+                    'token': False
+                }, 500
+                
+            data = response.json()
+            stations = data.get("data", {}).get("stations", [])
+            
+            # Rechercher la station dans Velib
+            matched_station = None
+            for station in stations:
+                if search_term.lower() in station.get("name", "").lower():
+                    matched_station = station
+                    break
+            
+            if matched_station:
+                return True, "Station trouvée!", {
+                    'lat': matched_station.get("lat"),
+                    'lon': matched_station.get("lon"),
+                    'station_id': matched_station.get("station_id"),
+                    'message': "Station trouvée!",
+                    'should_save': True
+                }, 200
+            
+            # 2. Si pas trouvé dans Vélib, chercher dans Nominatim
+            # 2. Si pas trouvé dans Vélib, chercher dans Nominatim
+            nominatim_url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(search_term)}&format=json&limit=1"
+
+            try:
+                nominatim_response = requests.get(nominatim_url, headers={'User-Agent': 'VelibSearchApp/1.0'})
+
+                if nominatim_response.ok:
+                    nominatim_data = nominatim_response.json()
+                    if nominatim_data:
+                        location = nominatim_data[0]
+                        lat = location.get("lat")
+                        lon = location.get("lon")
+
+                        if lat and lon:
+                            return True, "Localisation trouvée!", {
+                                'lat': lat,
+                                'lon': lon,
+                                'station_id': None,
+                                'message': "Localisation trouvée via Nominatim",
+                                'should_save': True
+                            }, 200
+                    # Nominatim a répondu mais n'a rien trouvé
+                    return False, "Lieu introuvable via Nominatim", {
+                        'lat': None,
+                        'lon': None,
+                        'station_id': None,
+                        'message': "Pas de lieu trouvé via Nominatim",
+                        'should_save': False
+                    }, 404
+
+            except Exception as e:
+                print(f"Erreur lors de la requête Nominatim : {e}")
+                return False, "Erreur de recherche externe", {
+                    'lat': None,
+                    'lon': None,
+                    'station_id': None,
+                    'message': "Erreur interne ou réseau avec Nominatim",
+                    'should_save': False
+                }, 500
+
+
+                
+
+            # 3. Si rien n'est trouvé
+            return True, "Aucune station ni adresse n'a été trouvée", {
+                'lat': None,
+                'lon': None,
+                'station_id': None,
+                'message': "Aucune station ni adresse n'a été trouvée",
+                'should_save': False
+            }, 200
+
+
+            
+        except Exception as e:
+            return False, f"Erreur inattendue: {str(e)}", {
+                'error': str(e),
+                'error_code': 'UNKNOWN_ERROR',
+                'token': False
+            }, 500
+
