@@ -8,6 +8,65 @@ from ..decorators import token_required
 # Créer un blueprint pour les routes de recherche
 search_bp = Blueprint('search', __name__)
 
+@search_bp.route('/', methods=['POST'])
+@token_required
+def search_station(*args, **kwargs):
+    """
+    Endpoint pour rechercher une station
+    ---
+    Requiert un JSON avec search
+    Requiert un token JWT valide
+    """
+    try:
+        # Récupérer l'ID utilisateur depuis le token JWT
+        token_user_id = kwargs.get('user_id')
+
+        # Récupérer les données JSON de la requête
+        data = request.get_json()
+        if not data or 'search' not in data:
+            return jsonify({
+                'error': "Paramètre 'search' manquant",
+                'error_code': 'MISSING_PARAMETER',
+                'token': True
+            }), 400
+
+        search_term = data['search']
+
+        # Rechercher la station via l'API externe
+        success, message, response_data, status_code = SearchService.search_station(search_term)
+        if not success:
+            return jsonify(response_data), status_code
+
+        # Enregistrer la recherche dans la base de données seulement si should_save est True
+        if response_data.get('should_save', False):
+            station_id = response_data.get('station_id')
+            result = 1 if station_id else 0
+            
+            success, db_message, db_data, db_status = SearchService.save_search(
+                token_user_id,
+                search_term,
+                station_id,
+                result
+            )
+
+            if not success:
+                return jsonify(db_data), db_status
+
+        # Retourner la réponse avec le message
+        return jsonify({
+            'lat': response_data.get('lat'),
+            'lon': response_data.get('lon'),
+            'message': message
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': f"Erreur inattendue: {str(e)}",
+            'error_code': 'UNKNOWN_ERROR',
+            'token': True
+        }), 500
+
+
 @search_bp.route('/delete', methods=['POST'])
 @token_required
 def delete_search(*args, **kwargs):
