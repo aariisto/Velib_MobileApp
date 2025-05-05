@@ -1,6 +1,3 @@
-"""
-Service pour la gestion des recherches
-"""
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Tuple, Dict, Any
 from ..extensions import db
@@ -53,7 +50,6 @@ class SearchService:
                 return True, f"Recherche {id_search} supprimée avec succès", {}, 200
             else:
                 return True, f"Aucune recherche trouvée avec l'id {id_search}", {}, 200
-                
         except SQLAlchemyError as e:
             # Annuler la transaction en cas d'erreur
             db.session.rollback()
@@ -62,7 +58,6 @@ class SearchService:
                 'error_code': 'DATABASE_ERROR',
                 'token': False
             }, 500
-            
         except Exception as e:
             db.session.rollback()
             return False, f"Erreur inattendue: {str(e)}", {
@@ -70,3 +65,43 @@ class SearchService:
                 'error_code': 'UNKNOWN_ERROR',
                 'token': False
             }, 500
+
+    @staticmethod
+    def get_searches_by_user(user_id: int) -> Tuple[bool, str, Any, int]:
+        """
+        Récupère toutes les recherches d'un utilisateur donné
+
+        Args:
+            user_id (int): ID de l'utilisateur
+
+        Returns:
+            tuple: (success, message, data, status_code)
+        """
+        try:
+            # Requête SQL pour récupérer les recherches de l'utilisateur
+            result = db.session.execute(
+                text("SELECT * FROM recherches WHERE client_id = :client_id"),
+                {'client_id': user_id}
+            )
+
+            # Récupérer les données sous forme de liste de dictionnaires
+            rows = result.fetchall()
+            data = []
+
+            # Ajouter le champ 'resultat' à chaque recherche
+            for row in rows:
+                search = dict(row._mapping)
+                # Vérifier si la recherche a un `station_id` valide
+                if search['station_id']:
+                    search['resultat'] = True  # Station valide
+                else:
+                    search['resultat'] = False  # Station non valide ou recherche libre
+                data.append(search)
+
+            return True, "Recherches récupérées avec succès", data, 200
+
+        except SQLAlchemyError as e:
+            return False, "Erreur base de données", {'error': str(e)}, 500
+
+        except Exception as e:
+            return False, "Erreur inconnue", {'error': str(e)}, 500
