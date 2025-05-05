@@ -80,28 +80,21 @@ class SearchService:
         try:
             # Requête SQL pour récupérer les recherches de l'utilisateur
             result = db.session.execute(
-                text("SELECT * FROM recherches WHERE client_id = :client_id"),
+                text("SELECT * FROM recherches_vue WHERE client_id = :client_id"),
                 {'client_id': user_id}
             )
 
-            # Récupérer les données sous forme de liste de dictionnaires
+            # Récupérer directement les données sans traitement
             rows = result.fetchall()
-            data = []
-
-            # Ajouter le champ 'resultat' à chaque recherche
-            for row in rows:
-                search = dict(row._mapping)
-                # Vérifier si la recherche a un `station_id` valide
-                if search['station_id']:
-                    search['resultat'] = True  # Station valide
-                else:
-                    search['resultat'] = False  # Station non valide ou recherche libre
-                data.append(search)
-
-            return True, "Recherches récupérées avec succès", data, 200
+            raw_data = [dict(row._mapping) for row in rows]
+            
+            # Retourner directement les données brutes
+            return True, "Recherches récupérées avec succès", raw_data, 200
 
         except SQLAlchemyError as e:
+            print(f"[ERROR] Erreur SQLAlchemy: {str(e)}")
             return False, "Erreur base de données", {'error': str(e)}, 500
 
         except Exception as e:
+            print(f"[ERROR] Exception générale: {str(e)}")
             return False, "Erreur inconnue", {'error': str(e)}, 500
