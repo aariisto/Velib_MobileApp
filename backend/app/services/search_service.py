@@ -1,6 +1,3 @@
-"""
-Service pour la gestion des recherches
-"""
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Tuple, Dict, Any
 from ..extensions import db
@@ -58,7 +55,6 @@ class SearchService:
                 return True, f"Recherche {id_search} supprimée avec succès", {}, 200
             else:
                 return True, f"Aucune recherche trouvée avec l'id {id_search}", {}, 200
-                
         except SQLAlchemyError as e:
             # Annuler la transaction en cas d'erreur
             db.session.rollback()
@@ -67,7 +63,6 @@ class SearchService:
                 'error_code': 'DATABASE_ERROR',
                 'token': False
             }, 500
-            
         except Exception as e:
             db.session.rollback()
             return False, f"Erreur inattendue: {str(e)}", {
@@ -233,3 +228,4 @@ class SearchService:
                 'error_code': 'UNKNOWN_ERROR',
                 'token': False
             }, 500
+
