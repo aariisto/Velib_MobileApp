@@ -4,6 +4,8 @@ Routes pour la gestion des recherches
 from flask import Blueprint, request, jsonify
 from ..services.search_service import SearchService
 from ..decorators import token_required
+from flask import Blueprint, session, jsonify
+from app.services.reservation_service import ReservationService
 
 # Créer un blueprint pour les routes de recherche
 search_bp = Blueprint('search', __name__)
@@ -58,33 +60,4 @@ def delete_search(*args, **kwargs):
         }), 500
     
 
-@search_bp.route('/', methods=['GET'])
-@token_required
-def get_user_searches(*args, **kwargs):
-    """
-    Endpoint pour récupérer les recherches de l'utilisateur authentifié
-    Requiert un token JWT valide
-    """
-    try:
-        user_id = kwargs.get('user_id')  # fourni par le décorateur token_required
 
-        # Appel au service pour récupérer les recherches
-        success, message, data, status_code = SearchService.get_searches_by_user(user_id)
-        
-        if success:
-            return jsonify({
-                'success': True,
-                'message': message,
-                'data': data
-            }), status_code
-        else:
-            return jsonify({
-                'success': False,
-                'message': message
-            }), status_code
-
-    except Exception as e:
-        return jsonify({
-            'error': f"Erreur serveur: {str(e)}",
-            'error_code': 'SERVER_ERROR'
-        }), 500
