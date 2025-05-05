@@ -189,14 +189,6 @@ class SearchService:
                                 'message': "Localisation trouvée via Nominatim",
                                 'should_save': True
                             }, 200
-                    # Nominatim a répondu mais n'a rien trouvé
-                    return False, "Lieu introuvable via Nominatim", {
-                        'lat': None,
-                        'lon': None,
-                        'station_id': None,
-                        'message': "Pas de lieu trouvé via Nominatim",
-                        'should_save': False
-                    }, 404
 
             except Exception as e:
                 print(f"Erreur lors de la requête Nominatim : {e}")
@@ -206,10 +198,7 @@ class SearchService:
                     'station_id': None,
                     'message': "Erreur interne ou réseau avec Nominatim",
                     'should_save': False
-                }, 500
-
-
-                
+                }, 500            
 
             # 3. Si rien n'est trouvé
             return True, "Aucune station ni adresse n'a été trouvée", {
@@ -218,7 +207,7 @@ class SearchService:
                 'station_id': None,
                 'message': "Aucune station ni adresse n'a été trouvée",
                 'should_save': False
-            }, 200
+            }, 201
 
 
             
@@ -228,4 +217,49 @@ class SearchService:
                 'error_code': 'UNKNOWN_ERROR',
                 'token': False
             }, 500
+        
+    @staticmethod
+    def get_searches_by_user(user_id: int) -> Tuple[bool, str, Any, int]:
+        """
+        Récupère toutes les recherches d'un utilisateur donné
+
+        Args:
+            user_id (int): ID de l'utilisateur
+
+        Returns:
+            tuple: (success, message, data, status_code)
+        """
+        try:
+            # Requête SQL pour récupérer les recherches de l'utilisateur
+            result = db.session.execute(
+                text("SELECT * FROM recherches_vue WHERE client_id = :client_id"),
+                {'client_id': user_id}
+            )
+
+            # Récupérer les données et ajouter la clé resultat_recherche
+            rows = result.fetchall()
+            data = []
+            
+            for row in rows:
+                search_item = dict(row._mapping)
+                
+                # Déterminer la valeur de resultat_recherche en fonction de resultat et station_id
+                if search_item.get('resultat') == 0 and search_item.get('station_id') is None:
+                    search_item['resultat_recherche'] = "Pas de resultat de recherche"
+                elif search_item.get('resultat') == 1 and search_item.get('station_id') is None:
+                    search_item['resultat_recherche'] = "Adresse trouvée"
+                else:
+                    search_item['resultat_recherche'] = "Station trouvée"
+                    
+                data.append(search_item)
+            
+            return True, "Recherches récupérées avec succès", data, 200
+
+        except SQLAlchemyError as e:
+            print(f"[ERROR] SQLAlchemy: {str(e)}")
+            return False, "Erreur base de données", {'error': str(e)}, 500
+
+        except Exception as e:
+            print(f"[ERROR] Exception: {str(e)}")
+            return False, "Erreur inconnue", {'error': str(e)}, 500
 

@@ -39,27 +39,36 @@ def search_station(*args, **kwargs):
         if not success:
             return jsonify(response_data), status_code
 
-        # Enregistrer la recherche dans la base de données seulement si should_save est True
+       
         if response_data.get('should_save', False):
-            station_id = response_data.get('station_id')
-            result = 1 if station_id else 0
+            result = 1 
+        else:
+            result = 0
             
-            success, db_message, db_data, db_status = SearchService.save_search(
-                token_user_id,
-                search_term,
-                station_id,
-                result
-            )
+        station_id = response_data.get('station_id')
+            
+        success, db_message, db_data, db_status = SearchService.save_search(
+            token_user_id,
+            search_term,
+            station_id,
+            result
+        )
 
-            if not success:
-                return jsonify(db_data), db_status
+        if not success:
+            return jsonify(db_data), db_status
 
-        # Retourner la réponse avec le message
-        return jsonify({
-            'lat': response_data.get('lat'),
-            'lon': response_data.get('lon'),
-            'message': message
-        }), 200
+        if response_data.get('should_save') != True:
+            # Si la recherche n'a pas abouti
+            return jsonify({
+                'message': "Station / Adresse non trouvée",
+                'error_code': 'NOT_FOUND'
+            }), 404
+        else:
+            return jsonify({
+                'lat': response_data.get('lat'),
+                'lon': response_data.get('lon'),
+                'message': message
+            }), 200
 
     except Exception as e:
         return jsonify({
@@ -148,3 +157,5 @@ def get_user_searches(*args, **kwargs):
              'error': f"Erreur serveur: {str(e)}",
              'error_code': 'SERVER_ERROR'
          }), 500
+     
+     
