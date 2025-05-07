@@ -1,7 +1,8 @@
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Tuple, Dict, Any
 from ..extensions import db
-from sqlalchemy import text
+from ..models.recherche_model import Recherche
+from ..models.station_model import Station
 import re
 import requests
 from typing import Optional
@@ -24,37 +25,22 @@ class SearchService:
             tuple: (success, message, response_data, status_code)
         """
         try:
-            # Vérifier la propriété de la recherche
-            check_result = db.session.execute(
-                text('SELECT COUNT(*) FROM recherches WHERE id = :id AND client_id = :client_id'),
-                {'id': id_search, 'client_id': user_id}
-            )
-            count = check_result.scalar()
+            # Vérifier la propriété de la recherche en utilisant le modèle ORM
+            search_to_delete = Recherche.query.filter_by(id=id_search, client_id=user_id).first()
             
-            if count == 0:
+            if not search_to_delete:
                 return False, "Vous n'êtes pas autorisé à supprimer cette recherche", {
                     'error': 'Recherche non trouvée ou accès non autorisé',
                     'error_code': 'ACCESS_DENIED',
                     'token': True
                 }, 403
 
-            # Exécuter la requête de suppression SQL avec text() explicite
-            delete_query = 'DELETE FROM recherches WHERE id = :id AND client_id = :client_id'
-            params = {'id': id_search, 'client_id': user_id}
-                
-            result = db.session.execute(
-                text(delete_query),
-                params
-            )
-            
-            # Valider la transaction
+            # Supprimer la recherche en utilisant le modèle ORM
+            db.session.delete(search_to_delete)
             db.session.commit()
             
-            # Vérifier si une ligne a été supprimée
-            if result.rowcount > 0:
-                return True, f"Recherche {id_search} supprimée avec succès", {}, 200
-            else:
-                return True, f"Aucune recherche trouvée avec l'id {id_search}", {}, 200
+            return True, f"Recherche {id_search} supprimée avec succès", {}, 200
+            
         except SQLAlchemyError as e:
             # Annuler la transaction en cas d'erreur
             db.session.rollback()
@@ -86,9 +72,6 @@ class SearchService:
             tuple: (success, message, response_data, status_code)
         """
         try:
-            # Importer le modèle Recherche
-            from ..models import Recherche
-            
             # Nettoyer la recherche
             search_term = re.sub(r'\s+', ' ', search_term.strip())
             
@@ -168,7 +151,6 @@ class SearchService:
                 }, 200
             
             # 2. Si pas trouvé dans Vélib, chercher dans Nominatim
-            # 2. Si pas trouvé dans Vélib, chercher dans Nominatim
             nominatim_url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(search_term)}&format=json&limit=1"
 
             try:
@@ -208,8 +190,6 @@ class SearchService:
                 'message': "Aucune station ni adresse n'a été trouvée",
                 'should_save': False
             }, 201
-
-
             
         except Exception as e:
             return False, f"Erreur inattendue: {str(e)}", {
@@ -230,23 +210,19 @@ class SearchService:
             tuple: (success, message, data, status_code)
         """
         try:
-            # Requête SQL pour récupérer les recherches de l'utilisateur
-            result = db.session.execute(
-                text("SELECT * FROM recherches_vue WHERE client_id = :client_id"),
-                {'client_id': user_id}
-            )
-
-            # Récupérer les données et ajouter la clé resultat_recherche
-            rows = result.fetchall()
-            data = []
+            # Utilisation du modèle ORM pour récupérer les recherches
+            # Note: Comme la vue 'recherches_vue' était utilisée auparavant, nous devons joindre
+            # les tables nécessaires pour obtenir les mêmes informations
+            searches = Recherche.query.filter_by(client_id=user_id).all()
             
-            for row in rows:
-                search_item = dict(row._mapping)
+            data = []
+            for search in searches:
+                search_item = search.to_dict()
                 
                 # Déterminer la valeur de resultat_recherche en fonction de resultat et station_id
-                if search_item.get('resultat') == 0 and search_item.get('station_id') is None:
+                if not search_item.get('resultat') and search_item.get('station_id') is None:
                     search_item['resultat_recherche'] = "Pas de resultat de recherche"
-                elif search_item.get('resultat') == 1 and search_item.get('station_id') is None:
+                elif search_item.get('resultat') and search_item.get('station_id') is None:
                     search_item['resultat_recherche'] = "Adresse trouvée"
                 else:
                     search_item['resultat_recherche'] = "Station trouvée"

@@ -21,6 +21,31 @@ Le backend est structuré selon une architecture modulaire :
 - **Modèles** : Représentation des données
 - **Décorateurs** : Fonctionnalités transversales (authentification, etc.)
 
+## Mise à jour du 7 mai 2025
+
+### Standardisation des modèles ORM dans tous les services
+
+Une refonte majeure des services a été effectuée pour standardiser l'utilisation des modèles ORM SQLAlchemy dans tous les services, en remplaçant les requêtes SQL directes.
+
+#### Services modifiés :
+
+1. **SearchService** (`app/services/search_service.py`)
+
+   - Conversion des requêtes SQL directes en utilisation de modèles ORM
+   - Les méthodes `delete_search`, `save_search` et `get_searches_by_user` utilisent maintenant le modèle `Recherche`
+
+2. **ReservationService** (`app/services/reservation_service.py`)
+   - Modification de la méthode `get_order` pour utiliser le modèle `Reservation`
+   - Standardisation des types de retour pour une meilleure cohérence
+
+#### Avantages de cette refonte :
+
+- **Sécurité améliorée** : Réduction des risques d'injection SQL
+- **Cohérence architecturale** : Utilisation uniforme d'une seule approche dans tous les services
+- **Meilleure maintenabilité** : Code plus lisible et plus facile à maintenir
+- **Portabilité de base de données** : Indépendance par rapport au dialecte SQL utilisé
+- **Type safety** : Meilleure gestion des types avec l'ORM
+
 ## API disponibles
 
 ### 1. Authentification (`/api/auth`)

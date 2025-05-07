@@ -1,9 +1,11 @@
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Tuple, Any, List, Dict
 from ..extensions import db
-from sqlalchemy import text
 import logging
 from ..models.reservation_model import Reservation
+from ..models.user_model import User
+from ..models.velo_model import Velo
+from ..models.station_model import Station
 
 class ReservationService:
     """Service pour gérer les réservations"""
@@ -24,26 +26,18 @@ class ReservationService:
             if not client_id or not isinstance(client_id, int):
                 return False, "ID client invalide", {"error": "L'ID client doit être un entier valide"}, 400
                 
-            # Requête SQL sécurisée avec paramètres nommés
-            query = """
-                SELECT *
-                FROM reservations_vue
-                WHERE client_id = :id
-                ORDER BY create_time DESC
-            """
-            
-            # Exécution de la requête avec paramètres
-            result = db.session.execute(text(query), {"id": client_id})
+            # Utilisation du modèle ORM pour récupérer les réservations
+            reservations = Reservation.query.filter_by(client_id=client_id).order_by(Reservation.create_time.desc()).all()
             
             # Conversion en dictionnaire
-            reservations = [dict(row._mapping) for row in result.fetchall()]
+            reservations_list = [reservation.to_dict() for reservation in reservations]
             
             message = "Réservations récupérées avec succès"
-            if not reservations:
+            if not reservations_list:
                 message = "Aucune réservation trouvée pour cet utilisateur"
                 
             # Retour standardisé avec message
-            return True, message, reservations, 200
+            return True, message, reservations_list, 200
 
         except SQLAlchemyError as e:
             db.session.rollback()
@@ -72,7 +66,7 @@ class ReservationService:
                 }
 
         Returns:
-            Tuple[bool, str, Dict[str, Any], int]: (succès, message, données, code_statut)
+            Tuple[bool, str, Dict[str, Any]], int]: (succès, message, données, code_statut)
         """
         try:
             # Validation des données
