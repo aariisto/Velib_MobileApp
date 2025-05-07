@@ -86,22 +86,22 @@ class SearchService:
             tuple: (success, message, response_data, status_code)
         """
         try:
+            # Importer le modèle Recherche
+            from ..models import Recherche
+            
             # Nettoyer la recherche
             search_term = re.sub(r'\s+', ' ', search_term.strip())
             
-            # Insérer la recherche dans la base de données
-            query = """
-                INSERT INTO recherches (client_id, recherche, station_id, resultat)
-                VALUES (:client_id, :recherche, :station_id, :resultat)
-            """
-            params = {
-                'client_id': user_id,
-                'recherche': search_term,
-                'station_id': station_id,
-                'resultat': result
-            }
+            # Créer une nouvelle instance du modèle Recherche
+            new_search = Recherche(
+                client_id=user_id,
+                recherche=search_term,
+                station_id=station_id,
+                resultat=bool(result)  # Convertir l'entier en booléen pour le champ resultat
+            )
             
-            db.session.execute(text(query), params)
+            # Ajouter l'objet à la session et effectuer le commit
+            db.session.add(new_search)
             db.session.commit()
             
             return True, "Recherche enregistrée avec succès", {}, 200

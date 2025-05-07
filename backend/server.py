@@ -39,11 +39,13 @@ def create_app():
     from app.routes.hello_routes import hello_bp
     from app.routes.search_routes import search_bp
     from app.routes.reservation_routes import reservation_bp
+    from app.routes.station_routes import station_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(hello_bp, url_prefix='/api/hello')
     app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(reservation_bp, url_prefix='/api/reservation')
+    app.register_blueprint(station_bp, url_prefix='/api/station')
 
     # Route racine
     @app.route('/')

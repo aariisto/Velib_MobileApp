@@ -6,4 +6,5 @@ PyMySQL==1.0.2
 bcrypt==3.2.0
 PyJWT==2.3.0
 cryptography==3.4.7
-Werkzeug==2.3.7 
+Werkzeug==2.3.7
+requests==2.28.1
