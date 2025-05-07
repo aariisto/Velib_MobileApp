@@ -3,6 +3,7 @@ from typing import Tuple, Any, List, Dict
 from ..extensions import db
 from sqlalchemy import text
 import logging
+from ..models.reservation_model import Reservation
 
 class ReservationService:
     """Service pour gérer les réservations"""
@@ -53,5 +54,55 @@ class ReservationService:
         except Exception as e:
             db.session.rollback()
             error_msg = f"Erreur inattendue lors de la récupération des réservations : {str(e)}"
+            logging.error(error_msg)
+            return False, "Erreur inattendue", {"error": str(e)}, 500
+
+    @staticmethod
+    def create_reservation(reservation_data: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any], int]:
+        """
+        Crée une nouvelle réservation
+
+        Args:
+            reservation_data (Dict[str, Any]): Données de la réservation
+                {
+                  "confirmationID": str,
+                  "id_velo": int,
+                  "station_id": int,
+                  "client_id": int
+                }
+
+        Returns:
+            Tuple[bool, str, Dict[str, Any], int]: (succès, message, données, code_statut)
+        """
+        try:
+            # Validation des données
+            required_fields = ['confirmationID', 'id_velo', 'client_id', 'station_id']
+            for field in required_fields:
+                if field not in reservation_data:
+                    return False, f"Le champ '{field}' est obligatoire", {"error": "Données incomplètes"}, 400
+            
+            # Création de la réservation
+            new_reservation = Reservation(
+                confirmationID=reservation_data['confirmationID'],
+                id_velo=reservation_data['id_velo'],
+                client_id=reservation_data['client_id'],
+                station_id=reservation_data['station_id']
+            )
+            
+            # Enregistrement de la réservation
+            db.session.add(new_reservation)
+            db.session.commit()
+            
+            return True, "Réservation créée avec succès", new_reservation.to_dict(), 201
+            
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            error_msg = f"Erreur SQL lors de la création de la réservation : {str(e)}"
+            logging.error(error_msg)
+            return False, "Erreur de base de données", {"error": str(e)}, 500
+            
+        except Exception as e:
+            db.session.rollback()
+            error_msg = f"Erreur inattendue lors de la création de la réservation : {str(e)}"
             logging.error(error_msg)
             return False, "Erreur inattendue", {"error": str(e)}, 500

@@ -38,7 +38,7 @@ def create_app():
     from app.routes.auth_routes import auth_bp
     from app.routes.hello_routes import hello_bp
     from app.routes.search_routes import search_bp
-    from app.routes.order_routes import reservation_bp
+    from app.routes.reservation_routes import reservation_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(hello_bp, url_prefix='/api/hello')
