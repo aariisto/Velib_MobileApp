@@ -21,6 +21,32 @@ Le backend est structuré selon une architecture modulaire :
 - **Modèles** : Représentation des données
 - **Décorateurs** : Fonctionnalités transversales (authentification, etc.)
 
+## Mise à jour du 9 mai 2025
+
+### Ajout des modèles ORM pour les vues SQL
+
+Afin d'optimiser l'accès aux données et de conserver l'approche ORM, nous avons créé des modèles SQLAlchemy pour les vues SQL définies dans la base de données:
+
+#### 1. Vue `reservations_vue`
+
+- Création du modèle `ReservationVue` dans `app/models/reservation_vue_model.py`
+- Modification du service `ReservationService.get_order()` pour utiliser ce modèle
+- Récupération complète des données de réservation incluant les informations sur les stations et les vélos
+
+#### 2. Vue `recherches_vue`
+
+- Création du modèle `RechercheVue` dans `app/models/recherche_vue_model.py`
+- Modification du service `SearchService.get_searches_by_user()` pour utiliser ce modèle
+- Récupération complète des recherches avec les informations associées sur les stations
+- Amélioration de la logique avec une méthode `_get_resultat_recherche()` intégrée au modèle
+
+#### Avantages de cette approche
+
+- **Performances améliorées**: Utilisation des vues SQL optimisées pour les jointures complexes
+- **Cohérence ORM**: Conservation des avantages de l'ORM (typage, facilité d'utilisation)
+- **Réduction du code**: Élimination de la logique manuelle de jointure et de conversion
+- **Maintenabilité accrue**: Centralisation de la logique métier dans les modèles
+
 ## Mise à jour du 7 mai 2025
 
 ### Standardisation des modèles ORM dans tous les services
