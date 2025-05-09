@@ -17,7 +17,7 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: velib_mysql_server
+    container_name: mysql_server
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: yannel
@@ -37,8 +37,8 @@ services:
       context: ./mysql
     container_name: data_insertion
     depends_on:
-      - flask-app
       - mysql
+      - flask-app
     restart: "no"
     networks:
       - velib-network

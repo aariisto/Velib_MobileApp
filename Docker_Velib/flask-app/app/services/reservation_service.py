@@ -6,6 +6,7 @@ from ..models.reservation_model import Reservation
 from ..models.user_model import User
 from ..models.velo_model import Velo
 from ..models.station_model import Station
+from ..models.reservation_vue_model import ReservationVue
 
 class ReservationService:
     """Service pour gérer les réservations"""
@@ -13,7 +14,7 @@ class ReservationService:
     @staticmethod
     def get_order(client_id: int) -> Tuple[bool, str, List[Dict[str, Any]], int]:
         """
-        Récupère les réservations d'un client
+        Récupère les réservations d'un client avec toutes les informations associées (station, velo)
 
         Args:
             client_id (int): ID du client
@@ -26,8 +27,8 @@ class ReservationService:
             if not client_id or not isinstance(client_id, int):
                 return False, "ID client invalide", {"error": "L'ID client doit être un entier valide"}, 400
                 
-            # Utilisation du modèle ORM pour récupérer les réservations
-            reservations = Reservation.query.filter_by(client_id=client_id).order_by(Reservation.create_time.desc()).all()
+            # Utilisation du modèle ORM de la vue pour récupérer les réservations avec les détails complets
+            reservations = ReservationVue.query.filter_by(client_id=client_id).order_by(ReservationVue.create_time.desc()).all()
             
             # Conversion en dictionnaire
             reservations_list = [reservation.to_dict() for reservation in reservations]

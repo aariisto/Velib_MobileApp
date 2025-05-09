@@ -3,6 +3,7 @@ from typing import Tuple, Dict, Any
 from ..extensions import db
 from ..models.recherche_model import Recherche
 from ..models.station_model import Station
+from ..models.recherche_vue_model import RechercheVue  # Assuming RechercheVue is defined in recherche_vue_model
 import re
 import requests
 from typing import Optional
@@ -213,7 +214,7 @@ class SearchService:
             # Utilisation du modèle ORM pour récupérer les recherches
             # Note: Comme la vue 'recherches_vue' était utilisée auparavant, nous devons joindre
             # les tables nécessaires pour obtenir les mêmes informations
-            searches = Recherche.query.filter_by(client_id=user_id).all()
+            searches = RechercheVue.query.filter_by(client_id=user_id).order_by(RechercheVue.created_at.desc()).all()
             
             data = []
             for search in searches:
