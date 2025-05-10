@@ -1,5 +1,5 @@
 // Configuration de base pour l'API
-export const API_URL = "http://172.20.10.2:5001";
+export const API_URL = "http://localhost:5001";
 
 // Configuration par défaut pour les requêtes
 export const DEFAULT_HEADERS = {

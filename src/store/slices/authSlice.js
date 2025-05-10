@@ -38,8 +38,34 @@ export const logout = createAsyncThunk(
   }
 );
 
+// Nouveau thunk pour vérifier la validité du token
+export const verifySession = createAsyncThunk(
+  "auth/verifySession",
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      // Récupération du token depuis le state
+      const { token } = getState().auth;
+
+      // Si pas de token, rejeter la requête
+      if (!token) {
+        return rejectWithValue("Pas de token disponible");
+      }
+
+      // Vérification du token
+      const response = await authService.verifyToken(token);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const initialState = {
-  user: null,
+  user: {
+    id: null,
+    username: null,
+    email: null,
+  },
   token: null,
   isLoading: false,
   error: null,
@@ -54,12 +80,20 @@ const authSlice = createSlice({
       state.error = null;
     },
     setCredentials: (state, action) => {
-      state.user = action.payload.user;
+      state.user = {
+        id: action.payload.user.id,
+        username: action.payload.user.username,
+        email: action.payload.user.email,
+      };
       state.token = action.payload.token;
       state.isAuthenticated = true;
     },
     clearCredentials: (state) => {
-      state.user = null;
+      state.user = {
+        id: null,
+        username: null,
+        email: null,
+      };
       state.token = null;
       state.isAuthenticated = false;
     },
@@ -73,8 +107,13 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
+        // Extraction des données depuis la structure de réponse
+        state.user = {
+          id: action.payload.data.id,
+          username: action.payload.data.username,
+          email: action.payload.data.email,
+        };
+        state.token = action.payload.data.token;
         state.isAuthenticated = true;
       })
       .addCase(login.rejected, (state, action) => {
@@ -98,7 +137,11 @@ const authSlice = createSlice({
         state.isLoading = true;
       })
       .addCase(logout.fulfilled, (state) => {
-        state.user = null;
+        state.user = {
+          id: null,
+          username: null,
+          email: null,
+        };
         state.token = null;
         state.isLoading = false;
         state.isAuthenticated = false;
@@ -106,6 +149,37 @@ const authSlice = createSlice({
       .addCase(logout.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+      }) // Verify Session
+      .addCase(verifySession.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(verifySession.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // Vérifier si la réponse indique que le token est valide
+        if (!action.payload.success) {
+          // Si la vérification échoue, réinitialiser l'état
+          state.user = {
+            id: null,
+            username: null,
+            email: null,
+          };
+          state.token = null;
+          state.isAuthenticated = false;
+        }
+        // Si la vérification réussit, on garde l'état courant
+      })
+      .addCase(verifySession.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+        // La vérification a échoué, réinitialiser l'état
+        state.user = {
+          id: null,
+          username: null,
+          email: null,
+        };
+        state.token = null;
+        state.isAuthenticated = false;
       });
   },
 });

@@ -60,7 +60,7 @@ class AuthService {
   /**
    * Déconnecte l'utilisateur
    * @returns {Promise} Réponse de l'API
-   */
+   
   async logout() {
     try {
       const response = await fetch(`${API_URL}/api/auth/logout`, {
@@ -77,6 +77,36 @@ class AuthService {
       return data;
     } catch (error) {
       handleApiError(error);
+    }
+  }
+  */
+
+  /**
+   * Vérifie la validité du token JWT
+   * @param {string} token - Token JWT à vérifier
+   * @returns {Promise} Réponse de l'API contenant la validité du token
+   */
+  async verifyToken(token) {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/verify-token`, {
+        method: "POST",
+        headers: DEFAULT_HEADERS,
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Erreur lors de la vérification du token"
+        );
+      }
+
+      return data;
+    } catch (error) {
+      handleApiError(error);
+      // Retourner un objet avec success: false pour indiquer que la vérification a échoué
+      return { success: false, message: error.message };
     }
   }
 }
