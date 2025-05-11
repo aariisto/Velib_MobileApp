@@ -1,9 +1,10 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, StyleSheet, Text } from "react-native";
+import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import HomeScreen from "../screens/Tab/HomeScreen";
 import HistoriqueScreen from "../screens/Tab/HistoriqueScreen";
+import styles from "./TabNavigatorStyles";
 
 const Tab = createBottomTabNavigator();
 
@@ -18,21 +19,25 @@ function TabBarIcon({ focused, name, label }) {
           end={{ x: 1, y: 0 }}
           style={styles.iconGradient}
         >
-          <Ionicons name={name} size={24} color="#fff" />
+          <Ionicons name={name} size={26} color="#fff" />
         </LinearGradient>
       ) : (
         <View style={styles.iconInactive}>
-          <Ionicons name={name} size={22} color="rgba(255, 255, 255, 0.7)" />
+          <Ionicons name={name} size={24} color="#516078" />
         </View>
       )}
-      <Text
-        style={[
-          styles.tabLabel,
-          focused ? styles.tabLabelActive : styles.tabLabelInactive,
-        ]}
-      >
-        {label}
-      </Text>
+      <View style={styles.labelContainer}>
+        <Text
+          style={[
+            styles.tabLabel,
+            focused ? styles.tabLabelActive : styles.tabLabelInactive,
+          ]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {label}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -68,52 +73,4 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  tabBar: {
-    height: 70,
-    backgroundColor: "#1E1B33", // Couleur sombre harmonisée avec le dégradé
-    borderTopWidth: 0,
-    position: "absolute",
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-  },
-  tabItemContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 8,
-  },
-  iconGradient: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#8E54E9",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
-    elevation: 6,
-  },
-  iconInactive: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  tabLabel: {
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  tabLabelActive: {
-    color: "#8E54E9",
-  },
-  tabLabelInactive: {
-    color: "rgba(255, 255, 255, 0.5)",
-  },
-});
+// Les styles ont été déplacés vers TabNavigatorStyles.js
