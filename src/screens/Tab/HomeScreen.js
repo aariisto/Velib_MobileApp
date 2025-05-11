@@ -8,13 +8,15 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  Modal,
   Keyboard,
+  Alert,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { clearCredentials } from "../../store/slices/authSlice";
+import DropdownMenu from "../../components/DropdownMenu";
 
 const PARIS_REGION = {
   latitude: 48.8566,
@@ -50,47 +52,12 @@ const mapHTML = `
 </html>
 `;
 
-// Composant pour le menu déroulant
-const DropdownMenu = ({ visible, onClose, onOptionSelect }) => {
-  return (
-    <Modal
-      transparent={true}
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.dropdownContainer}>
-            <TouchableOpacity
-              style={styles.dropdownItem}
-              onPress={() => onOptionSelect("settings")}
-            >
-              <Ionicons name="settings-outline" size={20} color="#fff" />
-              <Text style={styles.dropdownText}>Paramètres</Text>
-            </TouchableOpacity>
-
-            <View style={styles.dropdownDivider} />
-
-            <TouchableOpacity
-              style={styles.dropdownItem}
-              onPress={() => onOptionSelect("logout")}
-            >
-              <Ionicons name="log-out-outline" size={20} color="#fff" />
-              <Text style={styles.dropdownText}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
-  );
-};
+// Le composant DropdownMenu est maintenant importé depuis "../../components/DropdownMenu"
 
 export default function HomeScreen() {
   // Récupérer le contenu complet du slice auth
   const authState = useSelector((state) => state.auth);
   const [searchQuery, setSearchQuery] = useState("");
-  const [dropdownVisible, setDropdownVisible] = useState(false);
 
   // Afficher le contenu complet du slice auth dans la console
   useEffect(() => {
@@ -98,17 +65,38 @@ export default function HomeScreen() {
     console.log(JSON.stringify(authState, null, 2));
     console.log("================================================");
   }, [authState]);
-
-  const toggleDropdown = () => {
-    setDropdownVisible(!dropdownVisible);
-  };
-
+  const dispatch = useDispatch();
   const handleOptionSelect = (option) => {
-    // Ici, vous pourriez implémenter les actions pour chaque option
     console.log(`Option sélectionnée: ${option}`);
-    setDropdownVisible(false);
-  };
 
+    if (option === "logout") {
+      // Afficher une alerte de confirmation avant la déconnexion
+      Alert.alert("Déconnexion", "Voulez-vous vraiment vous déconnecter ?", [
+        {
+          text: "Annuler",
+          style: "cancel",
+        },
+        {
+          text: "Oui",
+          onPress: () => {
+            // Exécuter la déconnexion avec clearCredentials du authSlice
+            console.log("Déconnexion en cours...");
+
+            // Cette action va réinitialiser l'état d'authentification
+            // en mettant isAuthenticated à false et en effaçant les informations utilisateur
+            dispatch(clearCredentials());
+
+            // Pas besoin de navigation manuelle ici car AppContent dans App.js
+            // détecte que isAuthenticated est passé à false et redirige automatiquement
+            // vers l'écran de connexion grâce à la condition du NavigationContainer
+          },
+        },
+      ]);
+    } else if (option === "settings") {
+      // Implémentation future des paramètres
+      console.log("Ouverture des paramètres");
+    }
+  };
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerTop}>
@@ -118,9 +106,9 @@ export default function HomeScreen() {
             Trouvez les stations Vélib proches de vous
           </Text>
         </View>
-        <TouchableOpacity style={styles.menuButton} onPress={toggleDropdown}>
-          <Ionicons name="menu" size={28} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <DropdownMenu onSelect={handleOptionSelect} />
+        </View>
       </View>
 
       <View style={styles.searchContainer}>
@@ -138,12 +126,6 @@ export default function HomeScreen() {
           onChangeText={setSearchQuery}
         />
       </View>
-
-      <DropdownMenu
-        visible={dropdownVisible}
-        onClose={() => setDropdownVisible(false)}
-        onOptionSelect={handleOptionSelect}
-      />
     </View>
   );
 
@@ -206,21 +188,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
-  },
-  menuButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
+  }, // Les styles du menu ont été supprimés car nous utilisons maintenant le composant externe
   title: {
     fontSize: 34,
     fontWeight: "bold",
@@ -256,44 +224,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     height: "100%",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-start",
-    alignItems: "flex-end",
-  },
-  dropdownContainer: {
-    backgroundColor: "rgba(15, 12, 41, 0.95)",
-    borderRadius: 12,
-    marginTop: 95,
-    marginRight: 20,
-    width: 200,
-    padding: 5,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  dropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 15,
-    borderRadius: 8,
-  },
-  dropdownText: {
-    color: "#fff",
-    fontSize: 16,
-    marginLeft: 12,
-  },
-  dropdownDivider: {
-    height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    marginVertical: 5,
-  },
+  }, // Les styles du dropdown ont été supprimés car nous utilisons maintenant le composant externe
   mapContainer: {
     flex: 1,
     borderTopLeftRadius: 30,
