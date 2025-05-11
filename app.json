@@ -3,6 +3,7 @@
     "name": "mon-app-test-new",
     "slug": "mon-app-test-new",
     "version": "1.0.0",
+    "sdkVersion": "53.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",

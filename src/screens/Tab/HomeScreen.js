@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
-import { StyleSheet, View, Dimensions, Platform } from "react-native";
+import { StyleSheet, View, Dimensions, Platform, Text } from "react-native";
 import { WebView } from "react-native-webview";
 import { useSelector } from "react-redux";
+import { LinearGradient } from "expo-linear-gradient";
 
 const PARIS_REGION = {
   latitude: 48.8566,
@@ -47,45 +48,86 @@ export default function HomeScreen() {
     console.log(JSON.stringify(authState, null, 2));
     console.log("================================================");
   }, [authState]);
-
   if (Platform.OS === "web") {
     // Version web avec OpenStreetMap dans une iframe
     return (
-      <View style={styles.container}>
-        <iframe
-          src="https://www.openstreetmap.org/export/embed.html?bbox=2.3422,48.8466,2.3622,48.8666&layer=mapnik"
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "none",
+      <LinearGradient
+        colors={["#0f0c29", "#302b63", "#24243e"]}
+        style={styles.gradientContainer}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Cartes</Text>
+          <Text style={styles.subtitle}>
+            Trouvez les stations Vélib proches de vous
+          </Text>
+        </View>
+        <View style={styles.mapContainer}>
+          <WebView
+            source={{
+              uri: "https://www.openstreetmap.org/export/embed.html?bbox=2.3422,48.8466,2.3622,48.8666&layer=mapnik",
+            }}
+            style={styles.map}
+          />
+        </View>
+      </LinearGradient>
+    );
+  }
+  // Version mobile avec WebView contenant OpenStreetMap
+  return (
+    <LinearGradient
+      colors={["#0f0c29", "#302b63", "#24243e"]}
+      style={styles.gradientContainer}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Cartes</Text>
+        <Text style={styles.subtitle}>
+          Trouvez les stations Vélib proches de vous
+        </Text>
+      </View>
+      <View style={styles.mapContainer}>
+        <WebView
+          style={styles.map}
+          source={{ html: mapHTML }}
+          onError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.warn("WebView error: ", nativeEvent);
           }}
         />
       </View>
-    );
-  }
-
-  // Version mobile avec WebView contenant OpenStreetMap
-  return (
-    <View style={styles.container}>
-      <WebView
-        style={styles.map}
-        source={{ html: mapHTML }}
-        onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.warn("WebView error: ", nativeEvent);
-        }}
-      />
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  gradientContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: "bold",
+    color: "#fff",
+    letterSpacing: 2,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginTop: 5,
+  },
+  mapContainer: {
+    flex: 1,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: "hidden",
+    marginTop: 10,
   },
   map: {
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height,
+    width: "100%",
+    height: "100%",
+    borderRadius: 20,
   },
 });
