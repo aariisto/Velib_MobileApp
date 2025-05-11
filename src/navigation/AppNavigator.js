@@ -1,10 +1,12 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, Text } from "react-native";
+import { View, Text, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import HomeScreen from "../screens/Tab/HomeScreen";
 import HistoriqueScreen from "../screens/Tab/HistoriqueScreen";
 import styles from "./TabNavigatorStyles";
+import CustomTabBar from "./CustomTabBar";
+import { COLORS } from "./TabNavigatorStyles";
 
 const Tab = createBottomTabNavigator();
 
@@ -14,16 +16,16 @@ function TabBarIcon({ focused, name, label }) {
     <View style={styles.tabItemContainer}>
       {focused ? (
         <LinearGradient
-          colors={["#4776E6", "#8E54E9"]}
+          colors={[COLORS.gradient.start, COLORS.gradient.end]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.iconGradient}
         >
-          <Ionicons name={name} size={26} color="#fff" />
+          <Ionicons name={name} size={26} color={COLORS.white} />
         </LinearGradient>
       ) : (
         <View style={styles.iconInactive}>
-          <Ionicons name={name} size={24} color="#516078" />
+          <Ionicons name={name} size={24} color={COLORS.inactive} />
         </View>
       )}
       <View style={styles.labelContainer}>
@@ -47,9 +49,12 @@ export default function TabLayout() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: {
+          display: "none", // Masquer la tabBar par défaut car nous utilisons une personnalisée
+        },
         tabBarShowLabel: false,
       }}
+      tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tab.Screen
         name="home"

@@ -4,8 +4,8 @@ import { StyleSheet, Platform, Dimensions } from "react-native";
 const { width } = Dimensions.get("window");
 const TAB_WIDTH = width / 2; // Diviser la largeur de l'écran par le nombre d'onglets (2)
 
-// Couleurs principales
-const COLORS = {
+// Couleurs principales (exportées pour être utilisées dans d'autres fichiers)
+export const COLORS = {
   gradient: {
     start: "#4776E6",
     end: "#8E54E9",
