@@ -17,10 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.monapp.test",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Cette application nécessite l'accès à la localisation pour afficher votre position sur la carte.",
-        "NSLocationAlwaysUsageDescription": "Cette application nécessite l'accès à la localisation pour afficher votre position sur la carte."
-      }
+      "infoPlist": {}
     },
     "android": {
       "adaptiveIcon": {

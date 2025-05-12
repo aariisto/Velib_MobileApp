@@ -7,7 +7,7 @@ import { store, persistor } from "./store/store";
 import LoginScreen from "./screens/Auth/LoginScreen";
 import RegisterScreen from "./screens/Auth/RegisterScreen";
 import AppNavigator from "./navigation/AppNavigator";
-import SessionValidator from "./components/SessionValidator";
+import SessionValidator from "./utils/SessionValidator";
 import { ActivityIndicator, View } from "react-native";
 
 const Stack = createStackNavigator();

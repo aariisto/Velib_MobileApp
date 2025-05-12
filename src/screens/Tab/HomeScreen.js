@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   Dimensions,
-  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -11,7 +10,12 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
-import { WebView } from "react-native-webview";
+import MapView, {
+  Marker,
+  UrlTile,
+  PROVIDER_GOOGLE,
+  PROVIDER_DEFAULT,
+} from "react-native-maps";
 import { useSelector, useDispatch } from "react-redux";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,32 +29,36 @@ const PARIS_REGION = {
   longitudeDelta: 0.0421,
 };
 
-// HTML pour la carte OpenStreetMap sur le web
-const mapHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <style>
-        #map { height: 100vh; width: 100vw; }
-        body { margin: 0; }
-    </style>
-</head>
-<body>
-    <div id="map"></div>
-    <script>
-        const map = L.map('map').setView([48.8566, 2.3522], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-        L.marker([48.8566, 2.3522]).addTo(map)
-            .bindPopup('Paris')
-            .openPopup();
-    </script>
-</body>
-</html>
-`;
+// Points supplémentaires autour de Paris
+const ADDITIONAL_LOCATIONS = [
+  {
+    id: 1,
+    title: "Paris 1",
+    description: "Quartier du 1er arrondissement",
+    coordinate: {
+      latitude: 48.863, // Légèrement au nord
+      longitude: 2.341,
+    },
+  },
+  {
+    id: 2,
+    title: "Paris 2",
+    description: "Quartier du 2ème arrondissement",
+    coordinate: {
+      latitude: 48.865, // Nord-est
+      longitude: 2.3622,
+    },
+  },
+  {
+    id: 3,
+    title: "Paris 3",
+    description: "Quartier du 3ème arrondissement",
+    coordinate: {
+      latitude: 48.8502, // Sud
+      longitude: 2.36,
+    },
+  },
+];
 
 // Le composant DropdownMenu est maintenant importé depuis "../../components/DropdownMenu"
 
@@ -128,30 +136,7 @@ export default function HomeScreen() {
       </View>
     </View>
   );
-
-  if (Platform.OS === "web") {
-    // Version web avec OpenStreetMap dans une iframe
-    return (
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-        <LinearGradient
-          colors={["#0f0c29", "#302b63", "#24243e"]}
-          style={styles.gradientContainer}
-        >
-          {renderHeader()}
-          <View style={styles.mapContainer}>
-            <WebView
-              source={{
-                uri: "https://www.openstreetmap.org/export/embed.html?bbox=2.3422,48.8466,2.3622,48.8666&layer=mapnik",
-              }}
-              style={styles.map}
-            />
-          </View>
-        </LinearGradient>
-      </TouchableWithoutFeedback>
-    );
-  }
-
-  // Version mobile avec WebView contenant OpenStreetMap
+  // Version mobile avec MapView et OpenStreetMap
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <LinearGradient
@@ -160,14 +145,42 @@ export default function HomeScreen() {
       >
         {renderHeader()}
         <View style={styles.mapContainer}>
-          <WebView
+          <MapView
+            provider={PROVIDER_DEFAULT} // Utiliser le fournisseur Google Maps
             style={styles.map}
-            source={{ html: mapHTML }}
-            onError={(syntheticEvent) => {
-              const { nativeEvent } = syntheticEvent;
-              console.warn("WebView error: ", nativeEvent);
+            initialRegion={{
+              latitude: PARIS_REGION.latitude,
+              longitude: PARIS_REGION.longitude,
+              latitudeDelta: 0.01, // Zoom plus proche
+              longitudeDelta: 0.01,
             }}
-          />
+            showsUserLocation={false}
+            showsMyLocationButton={false}
+            zoomEnabled={true}
+            zoomControlEnabled={true}
+          >
+            {/* Marqueur personnalisé pour Paris central */}
+            <Marker
+              coordinate={{
+                latitude: PARIS_REGION.latitude,
+                longitude: PARIS_REGION.longitude,
+              }}
+              title="Paris"
+              description="Centre de Paris"
+              pinColor="#4285F4" // Couleur bleue comme dans votre version précédente
+            />
+
+            {/* Marqueurs supplémentaires pour Paris 1, 2, 3 */}
+            {ADDITIONAL_LOCATIONS.map((location) => (
+              <Marker
+                key={location.id}
+                coordinate={location.coordinate}
+                title={location.title}
+                description={location.description}
+                pinColor="#4285F4" // Même couleur bleue
+              />
+            ))}
+          </MapView>
         </View>
       </LinearGradient>
     </TouchableWithoutFeedback>
