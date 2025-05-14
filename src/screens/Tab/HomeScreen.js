@@ -8,15 +8,26 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Alert,
+  ActivityIndicator,
 } from "react-native";
-import MapView, { PROVIDER_DEFAULT, PROVIDER_GOOGLE } from "react-native-maps";
+import { EventRegister } from "react-native-event-listeners";
+import MapView, {
+  PROVIDER_DEFAULT,
+  PROVIDER_GOOGLE,
+  Marker,
+  Callout,
+} from "react-native-maps";
 import { useSelector, useDispatch } from "react-redux";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { clearCredentials } from "../../store/slices/authSlice";
 import DropdownMenu from "../../components/DropdownMenu";
-import { getUserLocation } from "../../utils/LocationUtils"; // Nouvel import pour l'utilitaire de localisation
+import {
+  getUserLocation,
+  loadStationsAndRefreshMap,
+} from "../../utils/LocationUtils";
+import StationService from "../../services/station.service"; // Import du service station
 
 const PARIS_REGION = {
   latitude: 48.8566,
@@ -30,6 +41,8 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState(null);
   const [mapRegion, setMapRegion] = useState(PARIS_REGION);
+  const [stations, setStations] = useState([]); // State pour stocker les stations
+  const [loading, setLoading] = useState(true); // State pour indiquer si les stations sont en cours de chargement
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -37,6 +50,7 @@ export default function HomeScreen() {
     console.log(JSON.stringify(authState, null, 2));
     console.log("================================================");
   }, [authState]);
+  // useEffect pour la localisation
   useEffect(() => {
     // Utiliser la fonction utilitaire pour obtenir la localisation
     getUserLocation({
@@ -51,6 +65,48 @@ export default function HomeScreen() {
         console.log("Localisation non disponible, carte centrée sur Paris.");
       },
     });
+  }, []);
+
+  // useEffect combiné pour charger les stations et gérer l'événement de rechargement
+  useEffect(() => {
+    // Fonction de chargement des stations qui sera utilisée à la fois au montage
+    // et lors du double-clic sur l'onglet Accueil
+    const loadStationsData = (ref_state) => {
+      loadStationsAndRefreshMap({
+        fetchStationsFunction: StationService.fetchStations,
+        setLoadingState: setLoading,
+        setStationsData: setStations,
+        refresh: ref_state,
+        goToLocationFunction: goToMyLocation,
+        onSuccess: (stationsData) => {
+          console.log(
+            `Stations chargées avec succès: ${stationsData.length} stations`
+          );
+        },
+        onError: (error) => {
+          console.error("Erreur gérée dans le composant:", error);
+        },
+      });
+    };
+
+    // Chargement initial des stations au montage du composant
+    loadStationsData(true);
+
+    // Créer un écouteur pour l'événement RELOAD_STATIONS (double-clic sur l'onglet Accueil)
+    const reloadListener = EventRegister.addEventListener(
+      "RELOAD_STATIONS",
+      () => {
+        console.log(
+          "Double-clic sur Accueil détecté, rechargement des stations..."
+        );
+        loadStationsData(false); // Passer false pour ne pas rafraîchir la carte
+      }
+    );
+
+    // Nettoyage de l'écouteur lors du démontage du composant
+    return () => {
+      EventRegister.removeEventListener(reloadListener);
+    };
   }, []);
 
   const dispatch = useDispatch();
@@ -144,7 +200,23 @@ export default function HomeScreen() {
             showsMyLocationButton={false}
             zoomEnabled={true}
             zoomControlEnabled={true}
-          />
+          >
+            {/* Afficher les marqueurs des stations */}
+            {stations.map((station) => (
+              <Marker
+                key={station.station_id}
+                coordinate={{
+                  latitude: station.lat,
+                  longitude: station.lon,
+                }}
+                title={station.name}
+                description={`Capacité: ${station.capacity} vélos`}
+                onPress={() =>
+                  console.log(`Station sélectionnée: ID ${station.station_id}`)
+                }
+              ></Marker>
+            ))}
+          </MapView>
           <TouchableOpacity
             style={styles.locationButton}
             onPress={goToMyLocation}
@@ -156,6 +228,14 @@ export default function HomeScreen() {
               <Ionicons name="locate-outline" size={28} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
+
+          {/* Indicateur de chargement */}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4776E6" />
+              <Text style={styles.loadingText}>Chargement des stations...</Text>
+            </View>
+          )}
         </View>
       </LinearGradient>
     </TouchableWithoutFeedback>
@@ -242,5 +322,44 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
+  },
+  // Styles pour les callouts des marqueurs
+  calloutContainer: {
+    width: 200,
+    padding: 10,
+    borderRadius: 10,
+  },
+  calloutTitle: {
+    fontWeight: "bold",
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  calloutDescription: {
+    fontSize: 12,
+    color: "#555",
+  },
+  // Styles pour l'indicateur de chargement
+  loadingContainer: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -75 }, { translateY: -40 }],
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    padding: 20,
+    borderRadius: 10,
+    width: 150,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#333",
+    fontWeight: "500",
+    textAlign: "center",
   },
 });

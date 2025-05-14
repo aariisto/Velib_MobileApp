@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Dimensions, Animated, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AnimatedCurveTabBar } from "./CurveTabBar";
+import { EventRegister } from "react-native-event-listeners";
 
 const { width } = Dimensions.get("window");
 const TAB_WIDTH = width / 2; // Pour 2 onglets
@@ -11,21 +12,27 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
 
   // Animation pour l'opacité des icônes
-  const fadeAnim = React.useMemo(() => ({
-    0: new Animated.Value(state.index === 0 ? 1 : 0),
-    1: new Animated.Value(state.index === 1 ? 1 : 0),
-  }), []);
+  const fadeAnim = React.useMemo(
+    () => ({
+      0: new Animated.Value(state.index === 0 ? 1 : 0),
+      1: new Animated.Value(state.index === 1 ? 1 : 0),
+    }),
+    []
+  );
 
   // Animation pour l'échelle des icônes
-  const scaleAnim = React.useMemo(() => ({
-    0: new Animated.Value(state.index === 0 ? 1 : 0.8),
-    1: new Animated.Value(state.index === 1 ? 1 : 0.8),
-  }), []);
+  const scaleAnim = React.useMemo(
+    () => ({
+      0: new Animated.Value(state.index === 0 ? 1 : 0.8),
+      1: new Animated.Value(state.index === 1 ? 1 : 0.8),
+    }),
+    []
+  );
 
   // Mettre à jour les animations lorsque l'index change
   useEffect(() => {
     setSelectedTabIndex(state.index);
-    
+
     // Animer tous les onglets
     state.routes.forEach((_, i) => {
       Animated.parallel([
@@ -44,18 +51,21 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   }, [state.index, fadeAnim, scaleAnim, state.routes]);
 
   return (
-    <View style={[
-      styles.tabBarContainer, 
-      { paddingBottom: insets.bottom > 0 ? insets.bottom : 10 }
-    ]}>
+    <View
+      style={[
+        styles.tabBarContainer,
+        { paddingBottom: insets.bottom > 0 ? insets.bottom : 10 },
+      ]}
+    >
       {/* Courbe animée qui suit l'onglet sélectionné */}
       <AnimatedCurveTabBar selectedTabIndex={selectedTabIndex} />
-      
+
       {/* Conteneur des onglets */}
       <View style={styles.tabsContainer}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-          const isFocused = state.index === index;
+          const isFocused = state.index === index; // Gestion des clics simples et doubles
+          const lastTapTimeRef = useRef(0);
 
           const onPress = () => {
             const event = navigation.emit({
@@ -64,6 +74,21 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
               canPreventDefault: true,
             });
 
+            const now = Date.now();
+
+            // Si c'est l'onglet "home" et que c'est un double clic (< 300ms entre deux clics)
+            if (route.name === "home" && isFocused) {
+              if (now - lastTapTimeRef.current < 300) {
+                console.log("Double clic sur Accueil détecté!");
+                // Émettre un événement pour recharger les stations
+                EventRegister.emit("RELOAD_STATIONS");
+              }
+            }
+
+            // Mettre à jour le timestamp du dernier clic
+            lastTapTimeRef.current = now;
+
+            // Navigation normale pour un clic simple
             if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
@@ -87,11 +112,8 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
                   color: isFocused ? "#8E54E9" : "#516078",
                   size: 24,
                 })}
-              <View 
-                style={[
-                  styles.tabTouchable,
-                  { width: TAB_WIDTH }
-                ]} 
+              <View
+                style={[styles.tabTouchable, { width: TAB_WIDTH }]}
                 onTouchEnd={onPress}
               />
             </Animated.View>
