@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { clearCredentials } from "../../store/slices/authSlice";
 import DropdownMenu from "../../components/DropdownMenu";
+import { getUserLocation } from "../../utils/LocationUtils"; // Nouvel import pour l'utilitaire de localisation
 
 const PARIS_REGION = {
   latitude: 48.8566,
@@ -36,44 +37,20 @@ export default function HomeScreen() {
     console.log(JSON.stringify(authState, null, 2));
     console.log("================================================");
   }, [authState]);
-
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission refusée",
-          "L'accès à la localisation a été refusé. La carte sera centrée sur Paris."
-        );
-        return;
-      }
-
-      try {
-        let location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        const currentUserRegion = {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        };
-        setUserLocation(currentUserRegion);
-        setMapRegion(currentUserRegion);
-        if (mapRef.current) {
-          mapRef.current.animateToRegion(currentUserRegion, 1000);
-        }
-      } catch (error) {
-        console.error(
-          "Erreur lors de la récupération de la localisation:",
-          error
-        );
-        Alert.alert(
-          "Erreur de localisation",
-          "Impossible de récupérer votre position. La carte sera centrée sur Paris."
-        );
-      }
-    })();
+    // Utiliser la fonction utilitaire pour obtenir la localisation
+    getUserLocation({
+      showAlert: true,
+      mapRef: mapRef,
+      onSuccess: (region) => {
+        setUserLocation(region);
+        setMapRegion(region);
+      },
+      onError: () => {
+        // En cas d'erreur, centrer sur Paris (déjà fait par initialisation)
+        console.log("Localisation non disponible, carte centrée sur Paris.");
+      },
+    });
   }, []);
 
   const dispatch = useDispatch();
@@ -98,54 +75,22 @@ export default function HomeScreen() {
       console.log("Ouverture des paramètres");
     }
   };
-
   const goToMyLocation = () => {
+    // Si on a déjà la position utilisateur, l'utiliser directement
     if (userLocation) {
       if (mapRef.current) {
         mapRef.current.animateToRegion(userLocation, 1000);
       }
     } else {
-      (async () => {
-        let { status } = await Location.getForegroundPermissionsAsync();
-        if (status !== "granted") {
-          const permissionResponse =
-            await Location.requestForegroundPermissionsAsync();
-          status = permissionResponse.status;
-        }
-
-        if (status === "granted") {
-          try {
-            let location = await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.High,
-            });
-            const currentUserRegion = {
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            };
-            setUserLocation(currentUserRegion);
-            setMapRegion(currentUserRegion);
-            if (mapRef.current) {
-              mapRef.current.animateToRegion(currentUserRegion, 1000);
-            }
-          } catch (error) {
-            console.error(
-              "Erreur lors de la nouvelle tentative de localisation:",
-              error
-            );
-            Alert.alert(
-              "Erreur",
-              "Impossible de récupérer votre position pour le moment."
-            );
-          }
-        } else {
-          Alert.alert(
-            "Permission requise",
-            "Veuillez activer la permission de localisation dans les paramètres de l'application pour utiliser cette fonctionnalité."
-          );
-        }
-      })();
+      // Sinon, demander la position avec l'utilitaire
+      getUserLocation({
+        showAlert: true,
+        mapRef: mapRef,
+        onSuccess: (region) => {
+          setUserLocation(region);
+          setMapRegion(region);
+        },
+      });
     }
   };
 
