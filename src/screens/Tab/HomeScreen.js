@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import {
   StyleSheet,
   View,
-  Dimensions,
   Text,
   TextInput,
   TouchableOpacity,
@@ -10,15 +9,11 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
-import MapView, {
-  Marker,
-  UrlTile,
-  PROVIDER_GOOGLE,
-  PROVIDER_DEFAULT,
-} from "react-native-maps";
+import MapView, { PROVIDER_DEFAULT, PROVIDER_GOOGLE } from "react-native-maps";
 import { useSelector, useDispatch } from "react-redux";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import { clearCredentials } from "../../store/slices/authSlice";
 import DropdownMenu from "../../components/DropdownMenu";
 
@@ -29,56 +24,63 @@ const PARIS_REGION = {
   longitudeDelta: 0.0421,
 };
 
-// Points supplémentaires autour de Paris
-const ADDITIONAL_LOCATIONS = [
-  {
-    id: 1,
-    title: "Paris 1",
-    description: "Quartier du 1er arrondissement",
-    coordinate: {
-      latitude: 48.863, // Légèrement au nord
-      longitude: 2.341,
-    },
-  },
-  {
-    id: 2,
-    title: "Paris 2",
-    description: "Quartier du 2ème arrondissement",
-    coordinate: {
-      latitude: 48.865, // Nord-est
-      longitude: 2.3622,
-    },
-  },
-  {
-    id: 3,
-    title: "Paris 3",
-    description: "Quartier du 3ème arrondissement",
-    coordinate: {
-      latitude: 48.8502, // Sud
-      longitude: 2.36,
-    },
-  },
-];
-
-// Le composant DropdownMenu est maintenant importé depuis "../../components/DropdownMenu"
-
 export default function HomeScreen() {
-  // Récupérer le contenu complet du slice auth
   const authState = useSelector((state) => state.auth);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userLocation, setUserLocation] = useState(null);
+  const [mapRegion, setMapRegion] = useState(PARIS_REGION);
+  const mapRef = useRef(null);
 
-  // Afficher le contenu complet du slice auth dans la console
   useEffect(() => {
     console.log("============= CONTENU DU SLICE AUTH =============");
     console.log(JSON.stringify(authState, null, 2));
     console.log("================================================");
   }, [authState]);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission refusée",
+          "L'accès à la localisation a été refusé. La carte sera centrée sur Paris."
+        );
+        return;
+      }
+
+      try {
+        let location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        const currentUserRegion = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        setUserLocation(currentUserRegion);
+        setMapRegion(currentUserRegion);
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(currentUserRegion, 1000);
+        }
+      } catch (error) {
+        console.error(
+          "Erreur lors de la récupération de la localisation:",
+          error
+        );
+        Alert.alert(
+          "Erreur de localisation",
+          "Impossible de récupérer votre position. La carte sera centrée sur Paris."
+        );
+      }
+    })();
+  }, []);
+
   const dispatch = useDispatch();
   const handleOptionSelect = (option) => {
     console.log(`Option sélectionnée: ${option}`);
 
     if (option === "logout") {
-      // Afficher une alerte de confirmation avant la déconnexion
       Alert.alert("Déconnexion", "Voulez-vous vraiment vous déconnecter ?", [
         {
           text: "Annuler",
@@ -87,24 +89,66 @@ export default function HomeScreen() {
         {
           text: "Oui",
           onPress: () => {
-            // Exécuter la déconnexion avec clearCredentials du authSlice
             console.log("Déconnexion en cours...");
-
-            // Cette action va réinitialiser l'état d'authentification
-            // en mettant isAuthenticated à false et en effaçant les informations utilisateur
             dispatch(clearCredentials());
-
-            // Pas besoin de navigation manuelle ici car AppContent dans App.js
-            // détecte que isAuthenticated est passé à false et redirige automatiquement
-            // vers l'écran de connexion grâce à la condition du NavigationContainer
           },
         },
       ]);
     } else if (option === "settings") {
-      // Implémentation future des paramètres
       console.log("Ouverture des paramètres");
     }
   };
+
+  const goToMyLocation = () => {
+    if (userLocation) {
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(userLocation, 1000);
+      }
+    } else {
+      (async () => {
+        let { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== "granted") {
+          const permissionResponse =
+            await Location.requestForegroundPermissionsAsync();
+          status = permissionResponse.status;
+        }
+
+        if (status === "granted") {
+          try {
+            let location = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.High,
+            });
+            const currentUserRegion = {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            };
+            setUserLocation(currentUserRegion);
+            setMapRegion(currentUserRegion);
+            if (mapRef.current) {
+              mapRef.current.animateToRegion(currentUserRegion, 1000);
+            }
+          } catch (error) {
+            console.error(
+              "Erreur lors de la nouvelle tentative de localisation:",
+              error
+            );
+            Alert.alert(
+              "Erreur",
+              "Impossible de récupérer votre position pour le moment."
+            );
+          }
+        } else {
+          Alert.alert(
+            "Permission requise",
+            "Veuillez activer la permission de localisation dans les paramètres de l'application pour utiliser cette fonctionnalité."
+          );
+        }
+      })();
+    }
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerTop}>
@@ -136,7 +180,7 @@ export default function HomeScreen() {
       </View>
     </View>
   );
-  // Version mobile avec MapView et OpenStreetMap
+
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <LinearGradient
@@ -146,41 +190,27 @@ export default function HomeScreen() {
         {renderHeader()}
         <View style={styles.mapContainer}>
           <MapView
-            provider={PROVIDER_DEFAULT} // Utiliser le fournisseur Google Maps
+            ref={mapRef}
+            provider={PROVIDER_DEFAULT}
             style={styles.map}
-            initialRegion={{
-              latitude: PARIS_REGION.latitude,
-              longitude: PARIS_REGION.longitude,
-              latitudeDelta: 0.01, // Zoom plus proche
-              longitudeDelta: 0.01,
-            }}
-            showsUserLocation={false}
+            region={mapRegion}
+            // onRegionChangeComplete={setMapRegion}
+            showsUserLocation={true}
             showsMyLocationButton={false}
             zoomEnabled={true}
             zoomControlEnabled={true}
+          />
+          <TouchableOpacity
+            style={styles.locationButton}
+            onPress={goToMyLocation}
           >
-            {/* Marqueur personnalisé pour Paris central */}
-            <Marker
-              coordinate={{
-                latitude: PARIS_REGION.latitude,
-                longitude: PARIS_REGION.longitude,
-              }}
-              title="Paris"
-              description="Centre de Paris"
-              pinColor="#4285F4" // Couleur bleue comme dans votre version précédente
-            />
-
-            {/* Marqueurs supplémentaires pour Paris 1, 2, 3 */}
-            {ADDITIONAL_LOCATIONS.map((location) => (
-              <Marker
-                key={location.id}
-                coordinate={location.coordinate}
-                title={location.title}
-                description={location.description}
-                pinColor="#4285F4" // Même couleur bleue
-              />
-            ))}
-          </MapView>
+            <LinearGradient
+              colors={["#4776E6", "#8E54E9"]}
+              style={styles.locationButtonGradient}
+            >
+              <Ionicons name="locate-outline" size={28} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
     </TouchableWithoutFeedback>
@@ -201,7 +231,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
-  }, // Les styles du menu ont été supprimés car nous utilisons maintenant le composant externe
+  },
   title: {
     fontSize: 34,
     fontWeight: "bold",
@@ -237,17 +267,35 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     height: "100%",
-  }, // Les styles du dropdown ont été supprimés car nous utilisons maintenant le composant externe
+  },
   mapContainer: {
     flex: 1,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: "hidden",
     marginTop: 10,
+    position: "relative",
   },
   map: {
     width: "100%",
     height: "100%",
-    borderRadius: 20,
+  },
+  locationButton: {
+    position: "absolute",
+    bottom: 90, // Position au-dessus de la Tab Navigation
+    right: 20,
+    borderRadius: 50,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    zIndex: 1000, // Assure que le bouton est au-dessus de tous les autres éléments
+  },
+  locationButtonGradient: {
+    padding: 15, // Padding augmenté pour un bouton plus grand
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
