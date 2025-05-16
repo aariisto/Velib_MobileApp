@@ -1,8 +1,10 @@
-# 🚲 MobileApp Vélib - Application de Géolocalisation des Stations
+# 🚲 MobileApp Vélib - Application de Géolocalisation des Stations [En cours de développement]
 
 ## 📱 À propos du projet
 
 MobileApp Vélib est une application mobile développée avec React Native qui permet aux utilisateurs de localiser et d'obtenir des informations sur les stations Vélib (vélos en libre-service) à Paris. L'application affiche une carte interactive avec toutes les stations disponibles, fournit des détails sur chaque station et permet aux utilisateurs de trouver les stations les plus proches grâce à la géolocalisation.
+
+> **Architecture du système** : Ce projet est le frontend mobile qui se connecte à un backend Docker (projet principal) disponible dans un dépôt séparé. Pour une expérience complète, vous devez également configurer le backend Docker_Velib.
 
 ## ✨ Fonctionnalités
 
@@ -76,14 +78,14 @@ MobileApp_Velib/
 - [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
 - [Expo CLI](https://docs.expo.dev/get-started/installation/)
 - [Python](https://www.python.org/) (v3.10 ou supérieur) pour le backend
-- [Docker](https://www.docker.com/) et [Docker Compose](https://docs.docker.com/compose/) (optionnel)
+- [Docker](https://www.docker.com/) et [Docker Compose](https://docs.docker.com/compose/)
 
 ### Installation de l'application mobile
 
 1. **Cloner le dépôt**
 
    ```bash
-   git clone <URL_DU_REPO>
+   git clone https://github.com/aariisto/Velib_MobileApp
    cd MobileApp_Velib
    ```
 
@@ -110,11 +112,24 @@ MobileApp_Velib/
 
 ### Déploiement du backend
 
-1. **Démarrer avec Docker Compose**
+1. **Cloner le repository backend (projet principal)**
+
+   ```bash
+   git clone https://github.com/aariisto/Docker_Velib_Mobile
+   ```
+
+2. **Accéder au dossier du projet backend**
+
    ```bash
    cd Docker_Velib
+   ```
+
+3. **Démarrer avec Docker Compose**
+   ```bash
    docker-compose up -d
    ```
+
+> **Important** : Le backend est un projet Docker séparé qui doit être cloné depuis le dépôt principal. Cette application mobile est conçue pour fonctionner avec l'API exposée par le projet Docker_Velib.
 
 ## 🔄 Fonctionnalités spéciales
 
