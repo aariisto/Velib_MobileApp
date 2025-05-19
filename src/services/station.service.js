@@ -26,7 +26,9 @@ class StationService {
    */
   async getStationDetails(stationId) {
     try {
-      const response = await axios.get(`${API_URL}/api/station/${stationId}`);
+      const response = await axios.get(
+        `${API_URL}/api/station/stations/${stationId}`
+      );
       return response.data;
     } catch (error) {
       console.error(

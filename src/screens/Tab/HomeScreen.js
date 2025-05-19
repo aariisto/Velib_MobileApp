@@ -23,6 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { clearCredentials } from "../../store/slices/authSlice";
 import DropdownMenu from "../../components/DropdownMenu";
+import StationDetailsModal from "../../components/StationDetailsModal";
 import {
   getUserLocation,
   loadStationsAndRefreshMap,
@@ -43,6 +44,10 @@ export default function HomeScreen() {
   const [mapRegion, setMapRegion] = useState(PARIS_REGION);
   const [stations, setStations] = useState([]); // State pour stocker les stations
   const [loading, setLoading] = useState(true); // State pour indiquer si les stations sont en cours de chargement
+  const [selectedStation, setSelectedStation] = useState(null); // Station sélectionnée sur la carte
+  const [stationDetails, setStationDetails] = useState(null); // Détails de la station sélectionnée
+  const [detailsLoading, setDetailsLoading] = useState(false); // État de chargement des détails
+  const [modalVisible, setModalVisible] = useState(false); // Visibilité du modal
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -150,6 +155,59 @@ export default function HomeScreen() {
     }
   };
 
+  // Fonction pour gérer le clic sur un marqueur de station
+  const handleStationPress = async (station) => {
+    setSelectedStation(station);
+    setDetailsLoading(true);
+    setModalVisible(true);
+
+    try {
+      // Appel de l'API pour récupérer les détails de la station
+      const details = await StationService.getStationDetails(
+        station.station_id
+      );
+      setStationDetails(details);
+      console.log("Détails de la station récupérés:", details);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la récupération des détails de la station ${station.station_id}:`,
+        error
+      );
+      Alert.alert(
+        "Erreur",
+        "Impossible de récupérer les détails de cette station. Veuillez réessayer."
+      );
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  // Fonction pour fermer le modal
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    // Réinitialiser les détails après une courte période
+    setTimeout(() => {
+      setSelectedStation(null);
+      setStationDetails(null);
+    }, 300);
+  };
+
+  // Fonction pour gérer le clic sur le bouton "Réserver"
+  const handleReservation = () => {
+    // Cette fonction sera implémentée ultérieurement pour la réservation
+    Alert.alert(
+      "Réservation",
+      `Vous allez réserver un vélo à la station ${selectedStation?.name}.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Confirmer",
+          onPress: () => console.log("Réservation confirmée"),
+        },
+      ]
+    );
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerTop}>
@@ -200,8 +258,7 @@ export default function HomeScreen() {
             showsMyLocationButton={false}
             zoomEnabled={true}
             zoomControlEnabled={true}
-          >
-            {/* Afficher les marqueurs des stations */}
+          >            {/* Afficher les marqueurs des stations */}
             {stations.map((station) => (
               <Marker
                 key={station.station_id}
@@ -211,9 +268,7 @@ export default function HomeScreen() {
                 }}
                 title={station.name}
                 description={`Capacité: ${station.capacity} vélos`}
-                onPress={() =>
-                  console.log(`Station sélectionnée: ID ${station.station_id}`)
-                }
+                onPress={() => handleStationPress(station)}
               ></Marker>
             ))}
           </MapView>
@@ -229,14 +284,23 @@ export default function HomeScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Indicateur de chargement */}
-          {loading && (
+          {/* Indicateur de chargement */}          {loading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#4776E6" />
               <Text style={styles.loadingText}>Chargement des stations...</Text>
             </View>
           )}
         </View>
+
+        {/* Modal des détails de la station */}
+        <StationDetailsModal
+          visible={modalVisible}
+          onClose={handleCloseModal}
+          station={selectedStation}
+          stationDetails={stationDetails}
+          loading={detailsLoading}
+          onReserve={handleReservation}
+        />
       </LinearGradient>
     </TouchableWithoutFeedback>
   );
