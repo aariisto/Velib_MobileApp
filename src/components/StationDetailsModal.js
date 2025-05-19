@@ -24,7 +24,8 @@ const StationDetailsModal = ({
   stationDetails,
   loading,
   onReserve,
-}) => {  const [selectedBikeType, setSelectedBikeType] = useState(null); // 'mechanical' ou 'electric'
+}) => {
+  const [selectedBikeType, setSelectedBikeType] = useState(null); // 'mechanical' ou 'electric'
   const [showSelectionMessage, setShowSelectionMessage] = useState(false);
   const slideAnim = useRef(new Animated.Value(400)).current;
   const mechanicalBikeAnim = useRef(new Animated.Value(1)).current;
@@ -232,57 +233,80 @@ const StationDetailsModal = ({
                         {stationDetails
                           ? stationDetails.numBikesAvailable
                           : "-"}
-                      </Text>                      <View style={styles.bikeTypesContainer}>
-                        <Animated.View 
+                      </Text>
+                      <View style={styles.bikeTypesContainer}>
+                        <Animated.View
                           style={{
-                            transform: [{ scale: mechanicalBikeAnim }]
+                            transform: [{ scale: mechanicalBikeAnim }],
                           }}
                         >
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             style={[
-                              styles.bikeType, 
-                              selectedBikeType === "mechanical" && styles.bikeTypeSelected,
-                              mechanicalBikes <= 0 && styles.bikeTypeDisabled
+                              styles.bikeType,
+                              selectedBikeType === "mechanical" &&
+                                styles.bikeTypeSelected,
+                              mechanicalBikes <= 0 && styles.bikeTypeDisabled,
                             ]}
-                            onPress={() => mechanicalBikes > 0 && handleBikeTypeSelect("mechanical")}
+                            onPress={() =>
+                              mechanicalBikes > 0 &&
+                              handleBikeTypeSelect("mechanical")
+                            }
                             disabled={mechanicalBikes <= 0}
                           >
-                            <Ionicons 
-                              name="bicycle" 
-                              size={16} 
-                              color={selectedBikeType === "mechanical" ? "#4776E6" : "#fff"} 
+                            <Ionicons
+                              name="bicycle"
+                              size={16}
+                              color={
+                                selectedBikeType === "mechanical"
+                                  ? "#4776E6"
+                                  : "#fff"
+                              }
                             />
-                            <Text style={[
-                              styles.bikeTypeText,
-                              selectedBikeType === "mechanical" && styles.bikeTypeTextSelected
-                            ]}>
+                            <Text
+                              style={[
+                                styles.bikeTypeText,
+                                selectedBikeType === "mechanical" &&
+                                  styles.bikeTypeTextSelected,
+                              ]}
+                            >
                               {mechanicalBikes || "0"}
                             </Text>
                           </TouchableOpacity>
                         </Animated.View>
-                        <Animated.View 
+                        <Animated.View
                           style={{
-                            transform: [{ scale: electricBikeAnim }]
+                            transform: [{ scale: electricBikeAnim }],
                           }}
                         >
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             style={[
-                              styles.bikeType, 
-                              selectedBikeType === "electric" && styles.bikeTypeSelected,
-                              electricBikes <= 0 && styles.bikeTypeDisabled
+                              styles.bikeType,
+                              selectedBikeType === "electric" &&
+                                styles.bikeTypeSelected,
+                              electricBikes <= 0 && styles.bikeTypeDisabled,
                             ]}
-                            onPress={() => electricBikes > 0 && handleBikeTypeSelect("electric")}
+                            onPress={() =>
+                              electricBikes > 0 &&
+                              handleBikeTypeSelect("electric")
+                            }
                             disabled={electricBikes <= 0}
                           >
-                            <Ionicons 
-                              name="flash" 
-                              size={16} 
-                              color={selectedBikeType === "electric" ? "#4776E6" : "#fff"} 
+                            <Ionicons
+                              name="flash"
+                              size={16}
+                              color={
+                                selectedBikeType === "electric"
+                                  ? "#4776E6"
+                                  : "#fff"
+                              }
                             />
-                            <Text style={[
-                              styles.bikeTypeText,
-                              selectedBikeType === "electric" && styles.bikeTypeTextSelected
-                            ]}>
+                            <Text
+                              style={[
+                                styles.bikeTypeText,
+                                selectedBikeType === "electric" &&
+                                  styles.bikeTypeTextSelected,
+                              ]}
+                            >
                               {electricBikes || "0"}
                             </Text>
                           </TouchableOpacity>
@@ -316,7 +340,8 @@ const StationDetailsModal = ({
                         </Text>
                       </View>
                     </View>
-                  </View>                  {/* Message de sélection */}
+                  </View>
+                  {/* Message de sélection */}
                   {showSelectionMessage && (
                     <View style={styles.messageContainer}>
                       <Text style={styles.selectionMessage}>
@@ -324,7 +349,6 @@ const StationDetailsModal = ({
                       </Text>
                     </View>
                   )}
-
                   {/* Infos supplémentaires */}
                   <View style={styles.additionalInfo}>
                     <Text style={styles.additionalInfoText}>
@@ -340,7 +364,6 @@ const StationDetailsModal = ({
                         : "-"}
                     </Text>
                   </View>
-
                   {/* Bouton de réservation */}
                   <TouchableOpacity
                     style={[
@@ -459,7 +482,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
     marginBottom: 5,
-  },  bikeTypesContainer: {
+  },
+  bikeTypesContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -498,14 +522,16 @@ const styles = StyleSheet.create({
   returnStatusText: {
     marginLeft: 5,
     fontSize: 12,
-  },  messageContainer: {
+  },
+  messageContainer: {
     width: "100%",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 15,
     padding: 10,
     marginBottom: 20,
     alignItems: "center",
-  },  selectionMessage: {
+  },
+  selectionMessage: {
     color: "#ff9500",
     fontSize: 16,
     textAlign: "center",

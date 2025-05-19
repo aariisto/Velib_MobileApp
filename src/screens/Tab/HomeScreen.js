@@ -261,7 +261,6 @@ export default function HomeScreen() {
             zoomEnabled={true}
             zoomControlEnabled={true}
           >
-            {" "}
             {/* Afficher les marqueurs des stations */}
             {stations.map((station) => (
               <Marker
@@ -285,7 +284,7 @@ export default function HomeScreen() {
               <Ionicons name="locate-outline" size={28} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
-          {/* Indicateur de chargement */}{" "}
+          {/* Indicateur de chargement */}
           {loading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#4776E6" />
