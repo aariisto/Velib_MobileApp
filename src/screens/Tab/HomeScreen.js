@@ -191,18 +191,20 @@ export default function HomeScreen() {
       setStationDetails(null);
     }, 300);
   };
-
   // Fonction pour gérer le clic sur le bouton "Réserver"
-  const handleReservation = () => {
+  const handleReservation = (bikeType) => {
     // Cette fonction sera implémentée ultérieurement pour la réservation
+    const bikeTypeName = bikeType === "mechanical" ? "mécanique" : "électrique";
+
     Alert.alert(
       "Réservation",
-      `Vous allez réserver un vélo à la station ${selectedStation?.name}.`,
+      `Vous allez réserver un vélo ${bikeTypeName} à la station ${selectedStation?.name}.`,
       [
         { text: "Annuler", style: "cancel" },
         {
           text: "Confirmer",
-          onPress: () => console.log("Réservation confirmée"),
+          onPress: () =>
+            console.log(`Réservation confirmée - Type de vélo: ${bikeType}`),
         },
       ]
     );
@@ -258,7 +260,9 @@ export default function HomeScreen() {
             showsMyLocationButton={false}
             zoomEnabled={true}
             zoomControlEnabled={true}
-          >            {/* Afficher les marqueurs des stations */}
+          >
+            {" "}
+            {/* Afficher les marqueurs des stations */}
             {stations.map((station) => (
               <Marker
                 key={station.station_id}
@@ -266,8 +270,6 @@ export default function HomeScreen() {
                   latitude: station.lat,
                   longitude: station.lon,
                 }}
-                title={station.name}
-                description={`Capacité: ${station.capacity} vélos`}
                 onPress={() => handleStationPress(station)}
               ></Marker>
             ))}
@@ -283,8 +285,8 @@ export default function HomeScreen() {
               <Ionicons name="locate-outline" size={28} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
-
-          {/* Indicateur de chargement */}          {loading && (
+          {/* Indicateur de chargement */}{" "}
+          {loading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#4776E6" />
               <Text style={styles.loadingText}>Chargement des stations...</Text>

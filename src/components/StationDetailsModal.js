@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Modal,
   View,
@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TouchableWithoutFeedback,
+  Animated,
+  Vibration,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,9 +24,119 @@ const StationDetailsModal = ({
   stationDetails,
   loading,
   onReserve,
-}) => {
-  // Si aucun détail n'est disponible, afficher un état de chargement ou vide
-  if (!stationDetails && !loading) {
+}) => {  const [selectedBikeType, setSelectedBikeType] = useState(null); // 'mechanical' ou 'electric'
+  const [showSelectionMessage, setShowSelectionMessage] = useState(false);
+  const slideAnim = useRef(new Animated.Value(400)).current;
+  const mechanicalBikeAnim = useRef(new Animated.Value(1)).current;
+  const electricBikeAnim = useRef(new Animated.Value(1)).current;
+
+  // Animation pour l'ouverture du modal
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(400);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 7,
+      }).start();
+    }
+  }, [visible, slideAnim]);
+  // Animation pour mettre en évidence les boutons de sélection
+  const animateBikeButtons = () => {
+    Vibration.vibrate(100); // Légère vibration pour indiquer qu'une selection est requise
+    setShowSelectionMessage(true);
+
+    // Animation séquencée pour les deux boutons
+    Animated.sequence([
+      Animated.parallel([
+        // Animation pour le vélo mécanique
+        Animated.sequence([
+          Animated.timing(mechanicalBikeAnim, {
+            toValue: 1.4,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(mechanicalBikeAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]),
+        // Animation pour le vélo électrique
+        Animated.sequence([
+          Animated.timing(electricBikeAnim, {
+            toValue: 1.4,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(electricBikeAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+      // Deuxième séquence d'animation
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(mechanicalBikeAnim, {
+            toValue: 1.4,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(mechanicalBikeAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(electricBikeAnim, {
+            toValue: 1.4,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(electricBikeAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    ]).start();
+
+    // Masquer le message après 3 secondes
+    setTimeout(() => {
+      setShowSelectionMessage(false);
+    }, 3000);
+  };
+
+  // Gestion de la sélection d'un type de vélo
+  const handleBikeTypeSelect = (type) => {
+    setSelectedBikeType(type);
+    setShowSelectionMessage(false);
+  };
+
+  // Gestion du bouton de réservation
+  const handleReservePress = () => {
+    if (!selectedBikeType) {
+      animateBikeButtons();
+      return;
+    }
+    onReserve(selectedBikeType);
+  };
+
+  // Réinitialiser la sélection quand le modal se ferme
+  useEffect(() => {
+    if (!visible) {
+      setSelectedBikeType(null);
+      setShowSelectionMessage(false);
+    }
+  }, [visible]);
+
+  // Si aucun détail n'est disponible et pas de chargement, ne rien afficher
+  if (!stationDetails && !loading && !visible) {
     return null;
   }
 
@@ -92,7 +205,6 @@ const StationDetailsModal = ({
                   <Text style={styles.stationName}>
                     {station ? station.name : "Station Vélib"}
                   </Text>
-
                   {/* Statut de la station */}
                   <View style={styles.statusContainer}>
                     <View
@@ -111,7 +223,6 @@ const StationDetailsModal = ({
                         : "Station indisponible"}
                     </Text>
                   </View>
-
                   {/* Contenu des informations */}
                   <View style={styles.infoContainer}>
                     {/* Disponibilité des vélos */}
@@ -121,20 +232,61 @@ const StationDetailsModal = ({
                         {stationDetails
                           ? stationDetails.numBikesAvailable
                           : "-"}
-                      </Text>
-                      <View style={styles.bikeTypesContainer}>
-                        <View style={styles.bikeType}>
-                          <Ionicons name="bicycle" size={18} color="#fff" />
-                          <Text style={styles.bikeTypeText}>
-                            {mechanicalBikes}
-                          </Text>
-                        </View>
-                        <View style={styles.bikeType}>
-                          <Ionicons name="flash" size={18} color="#fff" />
-                          <Text style={styles.bikeTypeText}>
-                            {electricBikes}
-                          </Text>
-                        </View>
+                      </Text>                      <View style={styles.bikeTypesContainer}>
+                        <Animated.View 
+                          style={{
+                            transform: [{ scale: mechanicalBikeAnim }]
+                          }}
+                        >
+                          <TouchableOpacity 
+                            style={[
+                              styles.bikeType, 
+                              selectedBikeType === "mechanical" && styles.bikeTypeSelected,
+                              mechanicalBikes <= 0 && styles.bikeTypeDisabled
+                            ]}
+                            onPress={() => mechanicalBikes > 0 && handleBikeTypeSelect("mechanical")}
+                            disabled={mechanicalBikes <= 0}
+                          >
+                            <Ionicons 
+                              name="bicycle" 
+                              size={16} 
+                              color={selectedBikeType === "mechanical" ? "#4776E6" : "#fff"} 
+                            />
+                            <Text style={[
+                              styles.bikeTypeText,
+                              selectedBikeType === "mechanical" && styles.bikeTypeTextSelected
+                            ]}>
+                              {mechanicalBikes || "0"}
+                            </Text>
+                          </TouchableOpacity>
+                        </Animated.View>
+                        <Animated.View 
+                          style={{
+                            transform: [{ scale: electricBikeAnim }]
+                          }}
+                        >
+                          <TouchableOpacity 
+                            style={[
+                              styles.bikeType, 
+                              selectedBikeType === "electric" && styles.bikeTypeSelected,
+                              electricBikes <= 0 && styles.bikeTypeDisabled
+                            ]}
+                            onPress={() => electricBikes > 0 && handleBikeTypeSelect("electric")}
+                            disabled={electricBikes <= 0}
+                          >
+                            <Ionicons 
+                              name="flash" 
+                              size={16} 
+                              color={selectedBikeType === "electric" ? "#4776E6" : "#fff"} 
+                            />
+                            <Text style={[
+                              styles.bikeTypeText,
+                              selectedBikeType === "electric" && styles.bikeTypeTextSelected
+                            ]}>
+                              {electricBikes || "0"}
+                            </Text>
+                          </TouchableOpacity>
+                        </Animated.View>
                       </View>
                     </View>
 
@@ -164,7 +316,14 @@ const StationDetailsModal = ({
                         </Text>
                       </View>
                     </View>
-                  </View>
+                  </View>                  {/* Message de sélection */}
+                  {showSelectionMessage && (
+                    <View style={styles.messageContainer}>
+                      <Text style={styles.selectionMessage}>
+                        Veuillez sélectionner un type de vélo
+                      </Text>
+                    </View>
+                  )}
 
                   {/* Infos supplémentaires */}
                   <View style={styles.additionalInfo}>
@@ -186,20 +345,29 @@ const StationDetailsModal = ({
                   <TouchableOpacity
                     style={[
                       styles.reserveButton,
-                      !isOperational && styles.reserveButtonDisabled,
+                      (!isOperational || !selectedBikeType) &&
+                        styles.reserveButtonDisabled,
                     ]}
                     disabled={!isOperational}
-                    onPress={onReserve}
+                    onPress={handleReservePress}
                   >
                     <LinearGradient
                       colors={
-                        isOperational
+                        isOperational && selectedBikeType
                           ? ["#4776E6", "#8E54E9"]
                           : ["#9a9a9a", "#727272"]
                       }
                       style={styles.reserveButtonGradient}
                     >
-                      <Text style={styles.reserveButtonText}>Réserver</Text>
+                      <Text style={styles.reserveButtonText}>
+                        {selectedBikeType
+                          ? `Réserver un vélo ${
+                              selectedBikeType === "mechanical"
+                                ? "mécanique"
+                                : "électrique"
+                            }`
+                          : "Réserver"}
+                      </Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
@@ -291,10 +459,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
     marginBottom: 5,
-  },
-  bikeTypesContainer: {
+  },  bikeTypesContainer: {
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    marginTop: 5,
   },
   bikeType: {
     flexDirection: "row",
@@ -305,10 +475,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 12,
   },
+  bikeTypeSelected: {
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderColor: "#4776E6",
+  },
+  bikeTypeDisabled: {
+    opacity: 0.4,
+  },
   bikeTypeText: {
     color: "#fff",
-    marginLeft: 4,
-    fontWeight: "500",
+    marginLeft: 5,
+    fontSize: 12,
+  },
+  bikeTypeTextSelected: {
+    color: "#302b63",
   },
   returnStatusContainer: {
     flexDirection: "row",
@@ -318,6 +498,18 @@ const styles = StyleSheet.create({
   returnStatusText: {
     marginLeft: 5,
     fontSize: 12,
+  },  messageContainer: {
+    width: "100%",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 15,
+    padding: 10,
+    marginBottom: 20,
+    alignItems: "center",
+  },  selectionMessage: {
+    color: "#ff9500",
+    fontSize: 16,
+    textAlign: "center",
+    fontWeight: "600",
   },
   additionalInfo: {
     backgroundColor: "rgba(255, 255, 255, 0.05)",
