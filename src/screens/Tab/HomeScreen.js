@@ -29,6 +29,7 @@ import {
   loadStationsAndRefreshMap,
 } from "../../utils/LocationUtils";
 import StationService from "../../services/station.service"; // Import du service station
+import reservationService from "../../services/reservation.service"; // Import du service de réservation
 
 const PARIS_REGION = {
   latitude: 48.8566,
@@ -190,10 +191,22 @@ export default function HomeScreen() {
       setSelectedStation(null);
       setStationDetails(null);
     }, 300);
-  };
-  // Fonction pour gérer le clic sur le bouton "Réserver"
+  }; // Fonction pour gérer le clic sur le bouton "Réserver"
   const handleReservation = (bikeType) => {
-    // Cette fonction sera implémentée ultérieurement pour la réservation
+    // Récupération des informations de l'utilisateur depuis le store Redux
+    const { user, token } = authState;
+
+    if (!user || !token) {
+      Alert.alert(
+        "Erreur de connexion",
+        "Vous devez être connecté pour effectuer une réservation.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Mapping du type de vélo (electric = 1, mechanical = 2)
+    const bikeTypeId = bikeType === "electric" ? 1 : 2;
     const bikeTypeName = bikeType === "mechanical" ? "mécanique" : "électrique";
 
     Alert.alert(
@@ -203,8 +216,41 @@ export default function HomeScreen() {
         { text: "Annuler", style: "cancel" },
         {
           text: "Confirmer",
-          onPress: () =>
-            console.log(`Réservation confirmée - Type de vélo: ${bikeType}`),
+          onPress: async () => {
+            try {
+              // Affichage d'un loader
+              setLoading(true);
+
+              // Appel à l'API pour la réservation
+              const result = await reservationService.postReservation(
+                bikeTypeId,
+                selectedStation.station_id,
+                user.id,
+                token
+              );
+
+              // Fermeture du modal et arrêt du loader
+              setModalVisible(false);
+              setLoading(false);
+
+              // Affichage du message de confirmation
+              Alert.alert(
+                "Réservation confirmée",
+                `Votre vélo ${bikeTypeName} a été réservé avec succès !`,
+                [{ text: "OK" }]
+              );
+            } catch (error) {
+              setLoading(false);
+              Alert.alert(
+                "Erreur de réservation",
+                `La réservation n'a pas pu être effectuée. Erreur: ${
+                  error.message || "Erreur inconnue"
+                }`,
+                [{ text: "OK" }]
+              );
+              console.error("Erreur lors de la réservation:", error);
+            }
+          },
         },
       ]
     );
