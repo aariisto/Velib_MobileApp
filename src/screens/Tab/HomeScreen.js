@@ -28,8 +28,7 @@ import {
   getUserLocation,
   loadStationsAndRefreshMap,
 } from "../../utils/LocationUtils";
-import StationService from "../../services/station.service"; // Import du service station
-import reservationService from "../../services/reservation.service"; // Import du service de réservation
+import { StationService, reservationService } from "../../services"; // Import des services depuis l'index
 
 const PARIS_REGION = {
   latitude: 48.8566,
@@ -231,14 +230,14 @@ export default function HomeScreen() {
 
               // Fermeture du modal et arrêt du loader
               setModalVisible(false);
-              setLoading(false);
-
-              // Affichage du message de confirmation
+              setLoading(false); // Affichage du message de confirmation
               Alert.alert(
                 "Réservation confirmée",
                 `Votre vélo ${bikeTypeName} a été réservé avec succès !`,
                 [{ text: "OK" }]
               );
+
+              // Rafraîchissement des stations pour mettre à jour les disponibilités
             } catch (error) {
               setLoading(false);
               Alert.alert(
