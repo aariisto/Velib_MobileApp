@@ -9,6 +9,7 @@ import {
   Keyboard,
   Alert,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import { EventRegister } from "react-native-event-listeners";
 import MapView, {
@@ -19,7 +20,7 @@ import MapView, {
 } from "react-native-maps";
 import { useSelector, useDispatch } from "react-redux";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { clearCredentials } from "../../store/slices/authSlice";
 import DropdownMenu from "../../components/DropdownMenu";
@@ -28,7 +29,11 @@ import {
   getUserLocation,
   loadStationsAndRefreshMap,
 } from "../../utils/LocationUtils";
-import { StationService, reservationService } from "../../services"; // Import des services depuis l'index
+import {
+  StationService,
+  reservationService,
+  searchService,
+} from "../../services"; // Import des services depuis l'index
 
 const PARIS_REGION = {
   latitude: 48.8566,
@@ -48,6 +53,7 @@ export default function HomeScreen() {
   const [stationDetails, setStationDetails] = useState(null); // Détails de la station sélectionnée
   const [detailsLoading, setDetailsLoading] = useState(false); // État de chargement des détails
   const [modalVisible, setModalVisible] = useState(false); // Visibilité du modal
+  const [searchLoading, setSearchLoading] = useState(false); // État de chargement de la recherche
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -114,6 +120,93 @@ export default function HomeScreen() {
     };
   }, []);
 
+  // Fonction pour gérer la recherche
+  const handleSearch = async () => {
+    // Si le champ de recherche est vide, ne rien faire
+    if (!searchQuery.trim()) {
+      return;
+    }
+
+    const { user, token } = authState;
+
+    // Vérifier si l'utilisateur est connecté
+    if (!user || !token) {
+      Alert.alert(
+        "Erreur de connexion",
+        "Vous devez être connecté pour effectuer une recherche.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    try {
+      // Indiquer que la recherche est en cours
+      setSearchLoading(true);
+      Keyboard.dismiss();
+
+      // Appel à l'API pour la recherche
+      const result = await searchService.searchLocation(
+        searchQuery,
+        user.id,
+        token
+      );
+
+      if (result && result.lat && result.lon) {
+        // Convertir lat et lon en nombres si ce sont des chaînes
+        const latitude =
+          typeof result.lat === "string" ? parseFloat(result.lat) : result.lat;
+        const longitude =
+          typeof result.lon === "string" ? parseFloat(result.lon) : result.lon;
+
+        // Définir la région pour centrer la carte sur le résultat
+        const searchRegion = {
+          latitude,
+          longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }; // Centrer la carte sur le résultat
+        mapRef.current.animateToRegion(searchRegion, 1000);
+
+        // Afficher un message temporaire pour indiquer le succès de la recherche
+        Alert.alert("Recherche", result.message || "Localisation trouvée !", [
+          { text: "OK" },
+        ]);
+      } else {
+        Alert.alert(
+          "Recherche",
+          "Aucun résultat trouvé pour cette recherche.",
+          [{ text: "OK" }]
+        );
+      }
+    } catch (error) {
+      // Vérifier si c'est une erreur 404 NOT_FOUND
+      if (
+        error.response &&
+        error.response.status === 404 &&
+        error.response.data &&
+        error.response.data.error_code === "NOT_FOUND"
+      ) {
+        // Message spécifique quand aucune station ni adresse n'est trouvée
+        Alert.alert(
+          "Recherche",
+          "Aucune station ni adresse n'a été trouvée pour cette recherche.",
+          [{ text: "OK" }]
+        );
+      } else {
+        // Message d'erreur générique pour les autres types d'erreurs
+        Alert.alert(
+          "Erreur de recherche",
+          `La recherche n'a pas pu être effectuée. Erreur: ${
+            error.message || "Erreur inconnue"
+          }`,
+          [{ text: "OK" }]
+        );
+      }
+      console.error("Erreur lors de la recherche:", error);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
   const dispatch = useDispatch();
   const handleOptionSelect = (option) => {
     console.log(`Option sélectionnée: ${option}`);
@@ -275,14 +368,24 @@ export default function HomeScreen() {
           size={20}
           color="rgba(255, 255, 255, 0.7)"
           style={styles.searchIcon}
-        />
+        />{" "}
         <TextInput
           style={styles.searchInput}
-          placeholder="Rechercher une station..."
+          placeholder="Rechercher une station ou une adresse..."
           placeholderTextColor="rgba(255, 255, 255, 0.5)"
           value={searchQuery}
           onChangeText={setSearchQuery}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
         />
+        <TouchableOpacity onPress={handleSearch} disabled={searchLoading}>
+          <Ionicons
+            name={searchLoading ? "hourglass-outline" : "arrow-forward"}
+            size={20}
+            color="rgba(255, 255, 255, 0.7)"
+            style={styles.searchActionIcon}
+          />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -295,6 +398,7 @@ export default function HomeScreen() {
       >
         {renderHeader()}
         <View style={styles.mapContainer}>
+          {" "}
           <MapView
             ref={mapRef}
             provider={PROVIDER_DEFAULT}
@@ -306,6 +410,7 @@ export default function HomeScreen() {
             zoomEnabled={true}
             zoomControlEnabled={true}
           >
+            {" "}
             {/* Afficher les marqueurs des stations */}
             {stations.map((station) => (
               <Marker
@@ -315,8 +420,10 @@ export default function HomeScreen() {
                   longitude: station.lon,
                 }}
                 onPress={() => handleStationPress(station)}
-              ></Marker>
+                pinColor="#8E54E9" // Couleur violette pour les marqueurs natifs de la map
+              />
             ))}
+            {/* Le marqueur de recherche a été supprimé */}
           </MapView>
           <TouchableOpacity
             style={styles.locationButton}
@@ -403,6 +510,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     height: "100%",
   },
+  searchActionIcon: {
+    marginLeft: 10,
+    padding: 5,
+  },
   mapContainer: {
     flex: 1,
     borderTopLeftRadius: 30,
@@ -447,8 +558,7 @@ const styles = StyleSheet.create({
   calloutDescription: {
     fontSize: 12,
     color: "#555",
-  },
-  // Styles pour l'indicateur de chargement
+  }, // Styles pour l'indicateur de chargement
   loadingContainer: {
     position: "absolute",
     top: "50%",
