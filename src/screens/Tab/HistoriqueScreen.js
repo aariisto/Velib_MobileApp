@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -8,114 +8,64 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
+  ActivityIndicator,
+  RefreshControl, // Ajout de RefreshControl
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-
-// Données fictives pour l'historique des recherches
-const recherches = [
-  {
-    id: "r1",
-    terme: "Station Bastille",
-    date: "10 mai 2025",
-    heure: "14:30",
-    type: "station",
-  },
-  {
-    id: "r2",
-    terme: "Place de la République",
-    date: "09 mai 2025",
-    heure: "11:15",
-    type: "adresse",
-  },
-  {
-    id: "r3",
-    terme: "Station Gare du Nord",
-    date: "08 mai 2025",
-    heure: "19:45",
-    type: "station",
-  },
-  {
-    id: "r4",
-    terme: "Champs-Élysées",
-    date: "07 mai 2025",
-    heure: "16:20",
-    type: "adresse",
-  },
-  {
-    id: "r5",
-    terme: "Station Montparnasse",
-    date: "05 mai 2025",
-    heure: "10:05",
-    type: "station",
-  },
-];
-
-// Données fictives pour l'historique des réservations
-const reservations = [
-  {
-    id: "res1",
-    velo: "VéloB-45892",
-    station: "Station Bastille",
-    date: "10 mai 2025",
-    heure: "14:45",
-    duree: "30 min",
-    statut: "Terminé",
-  },
-  {
-    id: "res2",
-    velo: "VéloB-12547",
-    station: "Station République",
-    date: "08 mai 2025",
-    heure: "09:30",
-    duree: "45 min",
-    statut: "Terminé",
-  },
-  {
-    id: "res3",
-    velo: "VéloB-33698",
-    station: "Station Montparnasse",
-    date: "01 mai 2025",
-    heure: "11:20",
-    duree: "15 min",
-    statut: "Terminé",
-  },
-  {
-    id: "res4",
-    velo: "VéloB-78541",
-    station: "Station Concorde",
-    date: "28 avr 2025",
-    heure: "16:05",
-    duree: "40 min",
-    statut: "Terminé",
-  },
-];
+import { useSelector } from "react-redux";
+import { reservationService, searchService } from "../../services";
+import { formatDate } from "../../utils/dateUtils";
+import Toast from "react-native-toast-message";
 
 // Composant pour une carte de recherche
-const RechercheCard = ({ item, onDelete }) => {
-  const getIconName = (type) => {
-    return type === "station" ? "bicycle" : "location";
-  };
+const RechercheCard = ({ item, onDelete, isDeleting }) => {
+  // Formatage de la date à partir de created_at
+  const dateInfo = formatDate(item.created_at);
 
+  // Déterminer l'icône en fonction du type de résultat
+  const getIconName = () => {
+    if (item.resultat_recherche === "Station trouvée") {
+      return "bicycle";
+    } else if (item.resultat_recherche === "Adresse trouvée") {
+      return "location";
+    } else {
+      return "help-circle";
+    }
+  };
   return (
-    <View style={styles.historyCard}>
+    <View style={[styles.historyCard, isDeleting && styles.deletingCard]}>
       <View style={styles.cardHeader}>
-        <View style={styles.iconContainer}>
-          <Ionicons name={getIconName(item.type)} size={22} color="#fff" />
+        <View
+          style={[
+            styles.iconContainer,
+            !item.resultat ? styles.errorIconContainer : null,
+          ]}
+        >
+          <Ionicons name={getIconName()} size={22} color="#fff" />
         </View>
         <View style={styles.cardInfo}>
-          <Text style={styles.termeText}>{item.terme}</Text>
-          <Text style={styles.dateText}>
-            {item.date} à {item.heure}
+          <Text style={styles.termeText}>
+            {item.resultat_recherche === "Station trouvée"
+              ? item.station
+              : item.recherche}
           </Text>
+          <Text style={styles.stationText}>
+            {item.resultat_recherche || "Recherche"}
+          </Text>
+          <Text style={styles.dateText}>{dateInfo.complet}</Text>
         </View>
       </View>
       <TouchableOpacity
-        style={styles.deleteButton}
+        style={styles.deleteButtonCircle}
         onPress={() => onDelete(item.id)}
+        disabled={isDeleting}
       >
-        <Ionicons name="trash-outline" size={18} color="#ff6b6b" />
-        <Text style={styles.deleteButtonText}>Supprimer</Text>
+        {isDeleting ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Ionicons name="trash-outline" size={20} color="#fff" />
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -123,27 +73,32 @@ const RechercheCard = ({ item, onDelete }) => {
 
 // Composant pour une carte de réservation
 const ReservationCard = ({ item, onViewDetails }) => {
+  // Formatage de la date à partir de create_time
+  const dateInfo = formatDate(item.create_time);
+
+  // Déterminer l'icône en fonction du type de vélo
+  const getBikeIcon = (type) => {
+    return type === "electrique" ? "flash" : "bicycle";
+  };
+
   return (
     <View style={styles.historyCard}>
       <View style={styles.cardHeader}>
         <View style={[styles.iconContainer, styles.bikeIconContainer]}>
-          <Ionicons name="bicycle" size={22} color="#fff" />
+          <Ionicons name={getBikeIcon(item.type_velo)} size={22} color="#fff" />
         </View>
         <View style={styles.cardInfo}>
-          <Text style={styles.termeText}>{item.velo}</Text>
-          <Text style={styles.stationText}>{item.station}</Text>
+          <Text style={styles.termeText}>{item.station}</Text>
+          <Text style={styles.stationText}>
+            {item.type_velo === "electrique"
+              ? "Vélo électrique"
+              : "Vélo mécanique"}
+          </Text>
           <Text style={styles.dateText}>
-            {item.date} à {item.heure} • {item.duree}
+            {dateInfo.complet} • N°{item.confirmationID}
           </Text>
         </View>
       </View>
-      <TouchableOpacity
-        style={styles.detailButton}
-        onPress={() => onViewDetails(item.id)}
-      >
-        <Ionicons name="information-circle-outline" size={18} color="#4dabf7" />
-        <Text style={styles.detailButtonText}>Détails</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -159,8 +114,114 @@ const SectionHeader = ({ title, count }) => (
 );
 
 export default function HistoriqueScreen() {
-  const [activeTab, setActiveTab] = useState("recherche"); // 'recherche' ou 'reservation'
+  const [activeTab, setActiveTab] = useState("recherche");
+  const [apiReservations, setApiReservations] = useState([]);
+  const [apiSearchHistory, setApiSearchHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false); // État pour le pull to refresh
+  const [deletingId, setDeletingId] = useState(null); // ID de la recherche en cours de suppression
+  const [error, setError] = useState(null);
+  // Récupérer l'état d'authentification depuis Redux
+  const authState = useSelector((state) => state.auth);
 
+  // Fonction pour charger les réservations de l'utilisateur
+  const loadReservations = async () => {
+    // Vérifier si l'utilisateur est connecté
+    if (!authState?.user?.id || !authState?.token) {
+      setError("Vous devez être connecté pour voir vos réservations");
+      console.log("Utilisateur non connecté");
+      return;
+    }
+
+    console.log("Authentification:", {
+      userId: authState.user.id,
+      tokenLength: authState.token ? authState.token.length : 0,
+    });
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const reservationsList = await reservationService.getReservations(
+        authState.user.id,
+        authState.token
+      );
+
+      setApiReservations(reservationsList || []);
+    } catch (err) {
+      console.error("Erreur lors du chargement des réservations:", err);
+      setError("Impossible de charger vos réservations");
+      Toast.show({
+        type: "error",
+        text1: "Erreur",
+        text2: "Impossible de charger vos réservations",
+        position: "bottom",
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false); // Arrêter l'indicateur de rafraîchissement
+    }
+  };
+
+  // Fonction pour charger l'historique des recherches
+  const loadSearchHistory = async () => {
+    // Vérifier si l'utilisateur est connecté
+    if (!authState?.user?.id || !authState?.token) {
+      setError("Vous devez être connecté pour voir votre historique");
+      console.log("Utilisateur non connecté");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const searchHistoryList = await searchService.getSearchHistory(
+        authState.user.id,
+        authState.token
+      );
+
+      setApiSearchHistory(searchHistoryList || []);
+    } catch (err) {
+      console.error("Erreur lors du chargement de l'historique:", err);
+      setError("Impossible de charger votre historique de recherche");
+      Toast.show({
+        type: "error",
+        text1: "Erreur",
+        text2: "Impossible de charger votre historique de recherche",
+        position: "bottom",
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false); // Arrêter l'indicateur de rafraîchissement
+    }
+  };
+
+  // Fonction pour gérer le pull to refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    if (activeTab === "recherche") {
+      await loadSearchHistory();
+    } else {
+      await loadReservations();
+    }
+  };
+
+  // Charger les réservations de l'utilisateur
+  useEffect(() => {
+    // Charger les réservations lorsque l'onglet réservation est actif
+    if (activeTab === "reservation") {
+      loadReservations();
+    }
+  }, [activeTab, authState.user?.id, authState.token]);
+
+  // Charger l'historique des recherches de l'utilisateur
+  useEffect(() => {
+    // Charger l'historique lorsque l'onglet recherche est actif
+    if (activeTab === "recherche") {
+      loadSearchHistory();
+    }
+  }, [activeTab, authState.user?.id, authState.token]);
   const handleDeleteRecherche = (id) => {
     Alert.alert(
       "Supprimer la recherche",
@@ -172,7 +233,49 @@ export default function HistoriqueScreen() {
         },
         {
           text: "Supprimer",
-          onPress: () => console.log(`Suppression de la recherche ${id}`),
+          onPress: async () => {
+            try {
+              // Définir l'ID de la recherche en cours de suppression
+              setDeletingId(id);
+
+              // Appeler l'API pour supprimer la recherche
+              const result = await searchService.deleteSearch(
+                id,
+                authState.user.id,
+                authState.token
+              );
+
+              if (result.success) {
+                // Mettre à jour l'état local pour supprimer l'élément de la liste
+                setApiSearchHistory((prevHistory) =>
+                  prevHistory.filter((item) => item.id !== id)
+                );
+
+                // Afficher un message de succès
+                Toast.show({
+                  type: "success",
+                  text1: "Recherche supprimée",
+                  text2: "La recherche a été supprimée de votre historique",
+                  position: "bottom",
+                });
+              } else {
+                throw new Error("Échec de la suppression");
+              }
+            } catch (err) {
+              console.error("Erreur lors de la suppression:", err);
+
+              // Afficher un message d'erreur
+              Toast.show({
+                type: "error",
+                text1: "Erreur",
+                text2: "Erreur lors de la suppression",
+                position: "bottom",
+              });
+            } finally {
+              // Réinitialiser l'ID de suppression
+              setDeletingId(null);
+            }
+          },
           style: "destructive",
         },
       ]
@@ -237,20 +340,47 @@ export default function HistoriqueScreen() {
             style={styles.content}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.contentContainer}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#6b63ff" // Couleur du spinner de chargement
+                colors={["#6b63ff", "#4dabf7"]} // Couleurs pour Android
+                title="Actualisation..." // Texte affiché sous le spinner (iOS uniquement)
+                titleColor="rgba(255, 255, 255, 0.7)" // Couleur du texte (iOS uniquement)
+              />
+            }
           >
             {activeTab === "recherche" ? (
               <>
                 <SectionHeader
                   title="Historique de recherche"
-                  count={recherches.length}
+                  count={loading ? "..." : apiSearchHistory.length}
                 />
                 <View style={styles.cardsContainer}>
-                  {recherches.length > 0 ? (
-                    recherches.map((item) => (
+                  {loading ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color="#6b63ff" />
+                      <Text style={styles.loadingText}>
+                        Chargement de votre historique...
+                      </Text>
+                    </View>
+                  ) : error ? (
+                    <View style={styles.errorContainer}>
+                      <Ionicons
+                        name="alert-circle-outline"
+                        size={50}
+                        color="rgba(255, 107, 107, 0.7)"
+                      />
+                      <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                  ) : apiSearchHistory.length > 0 ? (
+                    apiSearchHistory.map((item) => (
                       <RechercheCard
                         key={item.id}
                         item={item}
                         onDelete={handleDeleteRecherche}
+                        isDeleting={deletingId === item.id}
                       />
                     ))
                   ) : (
@@ -270,14 +400,30 @@ export default function HistoriqueScreen() {
             ) : (
               <>
                 <SectionHeader
-                  title="Historique de réservation"
-                  count={reservations.length}
+                  title="Mes réservations"
+                  count={loading ? "..." : apiReservations.length}
                 />
                 <View style={styles.cardsContainer}>
-                  {reservations.length > 0 ? (
-                    reservations.map((item) => (
+                  {loading ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color="#6b63ff" />
+                      <Text style={styles.loadingText}>
+                        Chargement de vos réservations...
+                      </Text>
+                    </View>
+                  ) : error ? (
+                    <View style={styles.errorContainer}>
+                      <Ionicons
+                        name="alert-circle-outline"
+                        size={50}
+                        color="rgba(255, 107, 107, 0.7)"
+                      />
+                      <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                  ) : apiReservations.length > 0 ? (
+                    apiReservations.map((item) => (
                       <ReservationCard
-                        key={item.id}
+                        key={item.confirmationID}
                         item={item}
                         onViewDetails={handleViewReservationDetails}
                       />
@@ -290,7 +436,7 @@ export default function HistoriqueScreen() {
                         color="rgba(255, 255, 255, 0.3)"
                       />
                       <Text style={styles.emptyStateText}>
-                        Aucune réservation récente
+                        Aucune réservation trouvée
                       </Text>
                     </View>
                   )}
@@ -311,6 +457,27 @@ const styles = StyleSheet.create({
   },
   gradientContainer: {
     flex: 1,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    color: "rgba(255, 255, 255, 0.7)",
+    marginTop: 10,
+    fontSize: 14,
+  },
+  errorContainer: {
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  errorText: {
+    color: "rgba(255, 107, 107, 0.9)",
+    marginTop: 10,
+    fontSize: 14,
+    textAlign: "center",
   },
   container: {
     flex: 1,
@@ -404,6 +571,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+    position: "relative",
+  },
+  deletingCard: {
+    opacity: 0.5,
   },
   cardHeader: {
     flexDirection: "row",
@@ -421,6 +592,9 @@ const styles = StyleSheet.create({
   },
   bikeIconContainer: {
     backgroundColor: "rgba(77, 171, 247, 0.25)",
+  },
+  errorIconContainer: {
+    backgroundColor: "rgba(255, 59, 48, 0.25)",
   },
   cardInfo: {
     flex: 1,
@@ -449,6 +623,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: "flex-start",
     marginTop: 4,
+  },
+  deleteButtonCircle: {
+    position: "absolute",
+    top: "70%",
+    right: 25,
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 107, 107, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   deleteButtonText: {
     color: "#ff6b6b",
@@ -481,5 +672,26 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.5)",
     fontSize: 16,
     marginTop: 10,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 30,
+  },
+  loadingText: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 16,
+    marginTop: 10,
+  },
+  errorContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 30,
+  },
+  errorText: {
+    color: "rgba(255, 107, 107, 0.7)",
+    fontSize: 16,
+    marginTop: 10,
+    textAlign: "center",
   },
 });

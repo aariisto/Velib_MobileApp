@@ -48,6 +48,36 @@ class ReservationService {
       throw error;
     }
   }
+  /**
+   * Récupère les réservations d'un utilisateur
+   * @param {number} user_id - ID de l'utilisateur
+   * @param {string} token - Token d'authentification JWT
+   * @returns {Promise<Array>} Liste des réservations
+   */
+  async getReservations(user_id, token) {
+    try {
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+
+      // S'assurer que user_id est un entier (le backend attend un int, pas un string)
+      const userId = parseInt(user_id, 10);
+
+      const response = await axios.get(`${API_URL}/api/reservation/`, {
+        headers,
+        params: { user_id: userId },
+      });
+
+      return response.data.data;
+    } catch (error) {
+      console.error("Erreur lors de la récupération des réservations:", error);
+      console.error("Status:", error.response?.status);
+      console.error("Message:", error.response?.data);
+      handleApiError(error);
+      return [];
+    }
+  }
 }
 
 export default new ReservationService();

@@ -354,7 +354,7 @@ const RegisterScreen = () => {
                   J'accepte les{" "}
                   <Text style={styles.termsHighlight}>
                     Conditions d'utilisation
-                  </Text>{" "}
+                  </Text>
                   et la{" "}
                   <Text style={styles.termsHighlight}>
                     Politique de confidentialité

@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    marginBottom: 55,
+    marginBottom: 59,
   },
   successToast: {
     // Le dégradé est appliqué via LinearGradient

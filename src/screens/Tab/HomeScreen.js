@@ -386,7 +386,7 @@ export default function HomeScreen() {
           size={20}
           color="rgba(255, 255, 255, 0.7)"
           style={styles.searchIcon}
-        />{" "}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Rechercher une station ou une adresse..."
@@ -416,7 +416,6 @@ export default function HomeScreen() {
       >
         {renderHeader()}
         <View style={styles.mapContainer}>
-          {" "}
           <MapView
             ref={mapRef}
             provider={PROVIDER_DEFAULT}
@@ -428,7 +427,6 @@ export default function HomeScreen() {
             zoomEnabled={true}
             zoomControlEnabled={true}
           >
-            {" "}
             {/* Afficher les marqueurs des stations */}
             {stations.map((station) => (
               <Marker
