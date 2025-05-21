@@ -34,9 +34,13 @@ class SearchService {
 
       return response.data;
     } catch (error) {
-      console.error("Erreur lors de la recherche:", error);
-      handleApiError(error);
-      throw error;
+      if (error.response.status != 404) {
+        console.error("Erreur lors de la recherche:", error);
+
+        handleApiError(error);
+
+        throw error;
+      }
     }
   }
 }

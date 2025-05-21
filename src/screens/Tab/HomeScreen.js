@@ -34,6 +34,7 @@ import {
   reservationService,
   searchService,
 } from "../../services"; // Import des services depuis l'index
+import Toast from "react-native-toast-message"; // Import Toast
 
 const PARIS_REGION = {
   latitude: 48.8566,
@@ -124,6 +125,13 @@ export default function HomeScreen() {
   const handleSearch = async () => {
     // Si le champ de recherche est vide, ne rien faire
     if (!searchQuery.trim()) {
+      Toast.show({
+        type: "error",
+        text1: "Champ vide",
+        text2: "Veuillez entrer une adresse ou un nom de station.",
+        position: "bottom",
+        visibilityTime: 3000,
+      });
       return;
     }
 
@@ -131,11 +139,13 @@ export default function HomeScreen() {
 
     // Vérifier si l'utilisateur est connecté
     if (!user || !token) {
-      Alert.alert(
-        "Erreur de connexion",
-        "Vous devez être connecté pour effectuer une recherche.",
-        [{ text: "OK" }]
-      );
+      Toast.show({
+        type: "error",
+        text1: "Non connecté",
+        text2: "Vous devez être connecté pour effectuer une recherche.",
+        position: "bottom",
+        visibilityTime: 3000,
+      });
       return;
     }
 
@@ -168,15 +178,21 @@ export default function HomeScreen() {
         mapRef.current.animateToRegion(searchRegion, 1000);
 
         // Afficher un message temporaire pour indiquer le succès de la recherche
-        Alert.alert("Recherche", result.message || "Localisation trouvée !", [
-          { text: "OK" },
-        ]);
+        Toast.show({
+          type: "success",
+          text1: result.message,
+          text2: searchQuery,
+          position: "bottom",
+          visibilityTime: 2500,
+        });
       } else {
-        Alert.alert(
-          "Recherche",
-          "Aucun résultat trouvé pour cette recherche.",
-          [{ text: "OK" }]
-        );
+        Toast.show({
+          type: "info",
+          text1: "Aucun résultat",
+          text2: "Essayez une autre recherche",
+          position: "bottom",
+          visibilityTime: 3000,
+        });
       }
     } catch (error) {
       // Vérifier si c'est une erreur 404 NOT_FOUND
@@ -187,20 +203,22 @@ export default function HomeScreen() {
         error.response.data.error_code === "NOT_FOUND"
       ) {
         // Message spécifique quand aucune station ni adresse n'est trouvée
-        Alert.alert(
-          "Recherche",
-          "Aucune station ni adresse n'a été trouvée pour cette recherche.",
-          [{ text: "OK" }]
-        );
+        Toast.show({
+          type: "info",
+          text1: "Aucune correspondance",
+          text2: "Aucune station ni adresse trouvée",
+          position: "bottom",
+          visibilityTime: 3000,
+        });
       } else {
         // Message d'erreur générique pour les autres types d'erreurs
-        Alert.alert(
-          "Erreur de recherche",
-          `La recherche n'a pas pu être effectuée. Erreur: ${
-            error.message || "Erreur inconnue"
-          }`,
-          [{ text: "OK" }]
-        );
+        Toast.show({
+          type: "error",
+          text1: "Erreur de recherche",
+          text2: "Veuillez réessayer ultérieurement",
+          position: "bottom",
+          visibilityTime: 3000,
+        });
       }
       console.error("Erreur lors de la recherche:", error);
     } finally {

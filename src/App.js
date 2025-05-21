@@ -9,6 +9,8 @@ import RegisterScreen from "./screens/Auth/RegisterScreen";
 import AppNavigator from "./navigation/AppNavigator";
 import SessionValidator from "./utils/SessionValidator";
 import { ActivityIndicator, View } from "react-native";
+import Toast from "react-native-toast-message";
+import { toastConfig } from "./utils/toastConfig"; // Import de la configuration personnalisée
 
 const Stack = createStackNavigator();
 
@@ -50,6 +52,7 @@ export default function App() {
     <Provider store={store}>
       <PersistGate loading={<LoadingView />} persistor={persistor}>
         <AppContent />
+        <Toast config={toastConfig} />
       </PersistGate>
     </Provider>
   );
