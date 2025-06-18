@@ -1,8 +1,10 @@
-# 🚲 MobileApp Vélib - Application de Géolocalisation des Stations [En cours de développement]
+# 🚲 MobileApp Vélib - Application de Géolocalisation des Stations
 
 ## 📱 À propos du projet
 
 MobileApp Vélib est une application mobile développée avec React Native qui permet aux utilisateurs de localiser et d'obtenir des informations sur les stations Vélib (vélos en libre-service) à Paris. L'application affiche une carte interactive avec toutes les stations disponibles, fournit des détails sur chaque station et permet aux utilisateurs de trouver les stations les plus proches grâce à la géolocalisation.
+
+![MobileApp Vélib](image/ban.png)
 
 > **Architecture du système** : Ce projet est le frontend mobile qui se connecte à un backend Docker (projet principal) disponible dans un dépôt séparé. Pour une expérience complète, vous devez également configurer le backend Docker_Velib.
 
@@ -140,14 +142,6 @@ L'application implémente une fonctionnalité de rechargement des données par d
 ### Géolocalisation et rafraîchissement de la carte
 
 Le composant `HomeScreen` utilise les utilitaires de localisation pour obtenir la position de l'utilisateur et centrer la carte sur cette position. Les stations Vélib sont affichées avec des marqueurs sur la carte.
-
-## 👨‍💻 Développement
-
-### Ajout de nouvelles fonctionnalités
-
-1. Si vous souhaitez ajouter une nouvelle fonctionnalité, créez les composants nécessaires dans `src/components/`.
-2. Pour ajouter un nouvel écran, créez-le dans `src/screens/` et mettez à jour la navigation dans `src/navigation/`.
-3. Pour ajouter un nouveau service API, créez-le dans `src/services/`.
 
 ### Style et thème
 
