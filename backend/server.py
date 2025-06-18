@@ -7,6 +7,7 @@ from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
 
+
 # Installer PyMySQL comme MySQLdb pour Flask-SQLAlchemy
 pymysql.install_as_MySQLdb()
 
@@ -31,8 +32,9 @@ def create_app():
     CORS(app)
     
     # Initialiser les extensions
-    from app.extensions import db
+    from app.extensions import db, migrate
     db.init_app(app)
+    migrate.init_app(app, db)   
     
     # Enregistrer les blueprints
     from app.routes.auth_routes import auth_bp
