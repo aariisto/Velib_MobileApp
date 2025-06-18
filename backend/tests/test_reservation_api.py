@@ -37,3 +37,10 @@ def test_reservation_missing_data(client, user_token):
         "station_id": 1
     }, follow_redirects=True)
     assert resp.status_code == 400
+
+def test_get_reservations(client, user_token):
+    resp = client.get("/api/reservations", headers=auth_headers(user_token))
+    assert resp.status_code in [200, 404]
+    if resp.status_code == 200:
+        data = resp.get_json()
+        assert isinstance(data, list)    
