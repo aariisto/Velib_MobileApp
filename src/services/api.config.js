@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 // Configuration de base pour l'API
 // Utilisez l'IP de votre ordinateur pour le développement
 // Utilisez localhost pour le web, et l'IP actuelle pour iOS/Android
-const LOCAL_IP = "192.168.1.142";
+const LOCAL_IP = "192.X.X.X";
 
 // Choisissez l'URL en fonction de la plateforme
 export const API_URL = Platform.select({
