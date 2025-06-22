@@ -111,7 +111,7 @@ MobileApp_Velib/
    ```
 
 5. **Scanner le QR code** avec l'application Expo Go sur votre appareil mobile ou lancer sur un émulateur.
-6. 
+
 > **Important** : Le backend est un projet Docker séparé qui doit être cloné depuis le dépôt principal. Cette application mobile est conçue pour fonctionner avec l'API exposée par le projet Docker_Velib.
 ### Déploiement du backend
 
