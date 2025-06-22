@@ -100,7 +100,7 @@ MobileApp_Velib/
    ```
 
 3. **Configurer l'API**
-   Modifiez `src/services/api.config.js` pour définir l'adresse IP de votre serveur backend.
+   Modifiez `src/services/api.config.js` pour définir votre adresse IP .
 
 4. **Lancer l'application**
 
@@ -111,7 +111,8 @@ MobileApp_Velib/
    ```
 
 5. **Scanner le QR code** avec l'application Expo Go sur votre appareil mobile ou lancer sur un émulateur.
-
+6. 
+> **Important** : Le backend est un projet Docker séparé qui doit être cloné depuis le dépôt principal. Cette application mobile est conçue pour fonctionner avec l'API exposée par le projet Docker_Velib.
 ### Déploiement du backend
 
 1. **Cloner le repository backend (projet principal)**
@@ -131,7 +132,7 @@ MobileApp_Velib/
    docker-compose up -d
    ```
 
-> **Important** : Le backend est un projet Docker séparé qui doit être cloné depuis le dépôt principal. Cette application mobile est conçue pour fonctionner avec l'API exposée par le projet Docker_Velib.
+> **Important** : Le téléphone et le PC sur lequel le projet est exécuté doivent être connectés au même réseau Wi-Fi.
 
 ## 🔄 Fonctionnalités spéciales
 
