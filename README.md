@@ -133,8 +133,6 @@ MobileApp_Velib/
    docker-compose up -d
    ```
 
-> **Important** : Le téléphone et le PC sur lequel le projet est exécuté doivent être connectés au même réseau Wi-Fi.
-
 ## 🔄 Fonctionnalités spéciales
 
 ### Double-clic sur l'onglet Accueil
